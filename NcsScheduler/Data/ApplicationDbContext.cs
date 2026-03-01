@@ -1,0 +1,84 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using NcsScheduler.Models.Domain;
+
+namespace NcsScheduler.Data;
+
+public class ApplicationUser : IdentityUser
+{
+    public int? NetControllerId { get; set; }
+    public NetController? NetController { get; set; }
+}
+
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options) { }
+
+    public DbSet<NetController> NetControllers => Set<NetController>();
+    public DbSet<BandCoordinator> BandCoordinators => Set<BandCoordinator>();
+    public DbSet<Net> Nets => Set<Net>();
+    public DbSet<NetScheduleRule> NetScheduleRules => Set<NetScheduleRule>();
+    public DbSet<NetCoordinatorAssignment> NetCoordinatorAssignments => Set<NetCoordinatorAssignment>();
+    public DbSet<NetControllerPool> NetControllerPool => Set<NetControllerPool>();
+    public DbSet<StandingAssignment> StandingAssignments => Set<StandingAssignment>();
+    public DbSet<NetSession> NetSessions => Set<NetSession>();
+    public DbSet<SessionAssignment> SessionAssignments => Set<SessionAssignment>();
+    public DbSet<Unavailability> Unavailabilities => Set<Unavailability>();
+    public DbSet<Invitation> Invitations => Set<Invitation>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        // Composite PK for NetControllerPool
+        builder.Entity<NetControllerPool>()
+            .HasKey(x => new { x.NetId, x.NetControllerId });
+
+        // Unique: one callsign per controller
+        builder.Entity<NetController>()
+            .HasIndex(x => x.Callsign)
+            .IsUnique();
+
+        // Unique: one session per net per date
+        builder.Entity<NetSession>()
+            .HasIndex(x => new { x.NetId, x.SessionDate })
+            .IsUnique();
+
+        // Unique: one coordinator record per controller
+        builder.Entity<BandCoordinator>()
+            .HasIndex(x => x.NetControllerId)
+            .IsUnique();
+
+        // Unique: invitation tokens must be unique
+        builder.Entity<Invitation>()
+            .HasIndex(x => x.Token)
+            .IsUnique();
+
+        // Store enums as strings for readability in the DB
+        builder.Entity<SessionAssignment>()
+            .Property(x => x.AssignmentType)
+            .HasConversion<string>();
+
+        builder.Entity<SessionAssignment>()
+            .Property(x => x.Status)
+            .HasConversion<string>();
+
+        // ApplicationUser -> NetController (optional link)
+        builder.Entity<ApplicationUser>()
+            .HasOne(u => u.NetController)
+            .WithOne()
+            .HasForeignKey<ApplicationUser>(u => u.NetControllerId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Prevent cascade delete cycles through Unavailability -> Net
+        builder.Entity<Unavailability>()
+            .HasOne(u => u.Net)
+            .WithMany()
+            .HasForeignKey(u => u.NetId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+}

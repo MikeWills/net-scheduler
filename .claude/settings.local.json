@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore)",
+      "Bash(dotnet add package Microsoft.EntityFrameworkCore.Sqlite)",
+      "Bash(dotnet add package Microsoft.EntityFrameworkCore.Tools)",
+      "Bash(dotnet add package MailKit)",
+      "Bash(dotnet list package)",
+      "Bash(dotnet build)",
+      "Bash(dotnet ef migrations add InitialCreate)",
+      "Bash(dotnet tool install --global dotnet-ef)",
+      "Bash(dotnet ef --version)",
+      "Bash(Start-Process -NoNewWindow -FilePath \"dotnet\" -ArgumentList \"run\",\"--project\",\"NcsScheduler\\\\NcsScheduler.csproj\" -WorkingDirectory \"C:\\\\Users\\\\mikew\\\\SyncThing\\\\Projects\\\\NcsScheduler\\\\NcsScheduler\" -RedirectStandardOutput \"$env:TEMP\\\\ncs_out.txt\" -RedirectStandardError \"$env:TEMP\\\\ncs_err.txt\")",
+      "Bash(Start-Sleep -Seconds 12)",
+      "Bash(Get-Content \"$env:TEMP\\\\ncs_out.txt\" -ErrorAction SilentlyContinue)",
+      "Bash(Get-Content \"$env:TEMP\\\\ncs_err.txt\" -ErrorAction SilentlyContinue)",
+      "Bash(curl -sL http://localhost:5106/Account/Login)",
+      "Bash(sqlite3.exe \"C:/Users/mikew/SyncThing/Projects/NcsScheduler/NcsScheduler/NcsScheduler/ncsscheduler.db\" \"SELECT COUNT\\(*\\) AS AspNetRoles FROM AspNetRoles; SELECT COUNT\\(*\\) AS AspNetUsers FROM AspNetUsers; SELECT COUNT\\(*\\) AS Nets FROM Nets; SELECT COUNT\\(*\\) AS NetScheduleRules FROM NetScheduleRules; SELECT COUNT\\(*\\) AS NetSessions FROM NetSessions;\")",
+      "Bash(dotnet run --project /tmp/sqlitequery/sqlitequery.csproj)",
+      "Bash(powershell.exe -Command \"where.exe sqlite3\")",
+      "Bash(powershell.exe -Command \"Get-Command sqlite3 -ErrorAction SilentlyContinue\")",
+      "Bash(dotnet ef database update --project NcsScheduler/NcsScheduler.csproj --startup-project NcsScheduler/NcsScheduler.csproj)"
+    ]
+  }
+}

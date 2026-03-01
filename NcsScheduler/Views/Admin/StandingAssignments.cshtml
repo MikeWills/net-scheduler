@@ -1,0 +1,110 @@
+@model List<NcsScheduler.Models.Domain.StandingAssignment>
+@using NcsScheduler.Models.Domain
+@{
+    ViewData["Title"] = "Standing Assignments";
+    var nets        = ViewBag.Nets        as List<Net>              ?? new();
+    var controllers = ViewBag.Controllers as List<NetController>    ?? new();
+    var rules       = ViewBag.Rules       as List<NetScheduleRule>  ?? new();
+
+    // Days in order Sun–Sat
+    var days = new[] {
+        DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+        DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday
+    };
+
+    // Only show nets that actually have schedule rules (holiday net is excluded — use Holiday Nets page)
+    var scheduledNets = nets.Where(n => rules.Any(r => r.NetId == n.Id)).ToList();
+
+    // Quick lookup: (netId, dayOfWeek) → current active standing assignment
+    var assignmentMap = Model.ToDictionary(sa => (sa.NetId, sa.DayOfWeek));
+
+    // Quick set: which (netId, dayOfWeek) pairs have an active schedule rule
+    var ruleSet = rules.Select(r => (r.NetId, r.DayOfWeek)).ToHashSet();
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center mb-3">
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-3">← Back</a>
+        <h2 class="mb-0">Standing Assignments</h2>
+    </div>
+    <p class="text-muted mb-4">
+        Set the default net controller for each net and day of week. Pick a callsign from the dropdown and click
+        <strong>Save</strong> — only that cell is updated. Choose <em>— Unassigned —</em> to clear a slot.
+        Shaded cells indicate the net doesn't run that day.
+    </p>
+
+    @if (!scheduledNets.Any())
+    {
+        <div class="alert alert-info">
+            No nets with schedule rules found.
+            Go to <a asp-controller="Nets" asp-action="Index">Nets</a> to configure schedule rules first.
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="min-width:110px">Day</th>
+                                @foreach (var net in scheduledNets)
+                                {
+                                    <th class="text-center" style="min-width:240px">
+                                        @net.Name
+                                        <br /><small class="fw-normal opacity-75">@net.ScheduledTimeUtc.ToString("HH:mm")z</small>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var day in days)
+                            {
+                                <tr>
+                                    <td class="fw-semibold ps-3">@day</td>
+                                    @foreach (var net in scheduledNets)
+                                    {
+                                        var hasRule = ruleSet.Contains((net.Id, day));
+                                        assignmentMap.TryGetValue((net.Id, day), out var current);
+
+                                        if (hasRule)
+                                        {
+                                            <td class="p-1">
+                                                <form asp-action="CreateStanding" method="post"
+                                                      class="d-flex gap-1 align-items-center px-1">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="netId" value="@net.Id" />
+                                                    <input type="hidden" name="dayOfWeek" value="@((int)day)" />
+                                                    <select name="netControllerId" class="form-select form-select-sm flex-grow-1">
+                                                        <option value="0">— Unassigned —</option>
+                                                        @foreach (var nc in controllers)
+                                                        {
+                                                            if (current?.NetControllerId == nc.Id)
+                                                            {
+                                                                <option value="@nc.Id" selected>@nc.Callsign – @nc.Name</option>
+                                                            }
+                                                            else
+                                                            {
+                                                                <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                                                            }
+                                                        }
+                                                    </select>
+                                                    <button type="submit" class="btn btn-sm btn-primary px-2">Save</button>
+                                                </form>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <td class="table-secondary text-center text-muted small">—</td>
+                                        }
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

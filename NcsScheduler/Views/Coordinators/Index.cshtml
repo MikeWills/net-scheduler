@@ -1,0 +1,130 @@
+@model List<NcsScheduler.Models.Domain.BandCoordinator>
+@using NcsScheduler.Models.Domain
+@{
+    ViewData["Title"] = "Band Coordinators";
+    var eligibleControllers = ViewBag.EligibleControllers as List<NetController> ?? new();
+    var nets = ViewBag.Nets as List<Net> ?? new();
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4">Band Coordinators</h2>
+
+    @* ── Current coordinators ─────────────────────────────────────────────── *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-bottom">
+            <h5 class="mb-0">Current Coordinators</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="p-4 text-center text-muted">No band coordinators yet. Use the form below to promote a net controller.</div>
+            }
+            else
+            {
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Callsign</th>
+                            <th>Name</th>
+                            <th>Currently Manages</th>
+                            <th style="min-width:260px">Add Net</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var bc in Model)
+                        {
+                            @* Nets already assigned to this coordinator *@
+                            var assignedNetIds = bc.NetAssignments.Select(nca => nca.NetId).ToHashSet();
+                            @* Nets available to add (not yet assigned to this coordinator) *@
+                            var availableNets = nets.Where(n => !assignedNetIds.Contains(n.Id)).ToList();
+
+                            <tr>
+                                <td class="fw-bold font-monospace">@bc.NetController.Callsign</td>
+                                <td>@bc.NetController.Name</td>
+                                <td>
+                                    @if (bc.NetAssignments.Any())
+                                    {
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var nca in bc.NetAssignments)
+                                            {
+                                                <form asp-action="RemoveNet" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="bandCoordinatorId" value="@bc.Id" />
+                                                    <input type="hidden" name="netId" value="@nca.NetId" />
+                                                    <span class="badge bg-primary d-inline-flex align-items-center gap-1 py-1 px-2">
+                                                        @(nca.Net?.Name ?? "Unknown")
+                                                        <button type="submit"
+                                                                class="btn-close btn-close-white"
+                                                                style="font-size:0.6rem"
+                                                                aria-label="Remove @(nca.Net?.Name)"></button>
+                                                    </span>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">None assigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (availableNets.Any())
+                                    {
+                                        <form asp-action="AssignNet" method="post" class="d-flex gap-2 align-items-center">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="bandCoordinatorId" value="@bc.Id" />
+                                            <select name="netId" class="form-select form-select-sm flex-grow-1" required>
+                                                <option value="">— Add a net —</option>
+                                                @foreach (var net in availableNets)
+                                                {
+                                                    <option value="@net.Id">@net.Name</option>
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-success">Add</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">All nets assigned</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    @* ── Promote a controller ─────────────────────────────────────────────── *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom">
+            <h5 class="mb-0">Promote to Band Coordinator</h5>
+            <small class="text-muted">The controller will gain coordinator access for whichever nets you assign them above.</small>
+        </div>
+        <div class="card-body">
+            @if (!eligibleControllers.Any())
+            {
+                <p class="text-muted mb-0">All active net controllers are already coordinators, or no controllers exist yet. <a asp-controller="Controllers" asp-action="Create">Add a net controller</a> first.</p>
+            }
+            else
+            {
+                <form asp-action="Promote" method="post" class="row g-2 align-items-center">
+                    @Html.AntiForgeryToken()
+                    <div class="col-auto">
+                        <select name="netControllerId" class="form-select" required>
+                            <option value="">— Select controller —</option>
+                            @foreach (var nc in eligibleControllers)
+                            {
+                                <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-dark">Promote to Coordinator</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>

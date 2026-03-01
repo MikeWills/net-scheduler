@@ -1,0 +1,171 @@
+@model NcsScheduler.Models.ViewModels.BcCalendarViewModel
+@using NcsScheduler.Models.Domain
+@{
+    ViewData["Title"] = "Weekly Calendar";
+    var days = Enumerable.Range(0, 7).Select(i => Model.WeekStart.AddDays(i)).ToList();
+}
+
+<div class="px-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-0">Weekly Calendar</h2>
+            <span class="text-muted">
+                @Model.WeekStart.ToString("MMMM d") &ndash; @Model.WeekEnd.ToString("MMMM d, yyyy")
+                <span class="ms-2 badge bg-secondary">Compared to previous week</span>
+            </span>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">&#8592; Manage Assignments</a>
+    </div>
+
+    @if (!Model.Rows.Any())
+    {
+        <div class="alert alert-info">No nets are assigned to you for this week.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered bc-calendar align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="net-col">Net</th>
+                        @foreach (var day in days)
+                        {
+                            <th class="text-center day-col">
+                                @day.ToString("ddd")
+                                <div class="fw-normal small opacity-75">@day.ToString("MMM d")</div>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            <td class="net-name-cell">
+                                <div class="fw-semibold">@row.Net.Name</div>
+                                <div class="text-muted small font-monospace">@row.Net.ScheduledTimeUtc.ToString("HH:mm")z</div>
+                            </td>
+                            @for (int i = 0; i < 7; i++)
+                            {
+                                var cell = row.Cells[i];
+                                if (cell is null)
+                                {
+                                    <td class="text-center cell-inactive"></td>
+                                }
+                                else
+                                {
+                                    string tdClass = "text-center";
+                                    if (cell.IsChanged) tdClass += " cell-changed";
+                                    else if (cell.NeedsNcs && !cell.HasVolunteer) tdClass += " cell-open";
+
+                                    <td class="@tdClass">
+                                        @if (cell.NeedsNcs && !cell.HasVolunteer)
+                                        {
+                                            <span class="badge bg-danger">NEED NCS</span>
+                                            if (!string.IsNullOrEmpty(cell.Callsign))
+                                            {
+                                                <div class="small text-muted mt-1">(@cell.Callsign out)</div>
+                                            }
+                                        }
+                                        else if (cell.HasVolunteer)
+                                        {
+                                            <span class="badge bg-warning text-dark">Volunteer</span>
+                                            <div class="font-monospace small mt-1">@cell.CopyPasteFormat</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
+                                            if (cell.AssignmentType == AssignmentType.Substitute)
+                                            {
+                                                <div><span class="badge bg-info text-dark mt-1">sub</span></div>
+                                            }
+                                        }
+
+                                        @* Change annotation *@
+                                        @if (cell.IsChanged)
+                                        {
+                                            <div class="change-note mt-1">
+                                                @if (cell.PrevNeedsNcs)
+                                                {
+                                                    <span>was: <em>open</em></span>
+                                                }
+                                                else if (!string.IsNullOrEmpty(cell.PrevCallsign))
+                                                {
+                                                    <span>was: @cell.PrevCallsign</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>was: <em>unassigned</em></span>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                }
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3 d-flex flex-wrap gap-3 align-items-center small">
+            <span class="d-flex align-items-center gap-1">
+                <span class="legend-swatch" style="background:#f8d7da;border:1px solid #f5c2c7"></span>
+                NEED NCS
+            </span>
+            <span class="d-flex align-items-center gap-1">
+                <span class="legend-swatch" style="background:#fff3cd;border:1px solid #ffc107"></span>
+                Changed from last week
+            </span>
+            <span class="d-flex align-items-center gap-1">
+                <span class="badge bg-info text-dark">sub</span>
+                One-time substitute
+            </span>
+            <span class="d-flex align-items-center gap-1">
+                <span class="badge bg-warning text-dark">Volunteer</span>
+                Volunteer pending confirmation
+            </span>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<style>
+    .bc-calendar { font-size: .9rem; }
+
+    .net-col   { min-width: 140px; width: 140px; }
+    .day-col   { min-width: 120px; }
+    .net-name-cell { vertical-align: middle; }
+
+    /* Days where the net does not run */
+    .cell-inactive { background-color: #f0f0f0; }
+
+    /* Open slot */
+    .cell-open { background-color: #f8d7da; }
+
+    /* Changed from last week */
+    .cell-changed { background-color: #fff3cd; }
+
+    /* "was: …" annotation */
+    .change-note {
+        font-size: .75rem;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    /* Legend swatches */
+    .legend-swatch {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+
+    /* Keep table cells from getting too cramped on small screens */
+    @@media (max-width: 768px) {
+        .bc-calendar { font-size: .8rem; }
+        .day-col     { min-width: 90px; }
+    }
+</style>
+}

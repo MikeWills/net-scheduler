@@ -1,0 +1,339 @@
+@using NcsScheduler.Models.Domain
+@using NcsScheduler.Models.ViewModels
+@{
+    ViewData["Title"] = "Manage Assignments";
+
+    var nets        = ViewBag.Nets        as List<Net>              ?? new();
+    var controllers = ViewBag.Controllers as List<NetController>    ?? new();
+    var rules       = ViewBag.Rules       as List<NetScheduleRule>  ?? new();
+    var standings   = ViewBag.Standings   as List<StandingAssignment> ?? new();
+    var exceptions  = ViewBag.Exceptions  as List<AssignmentSlotItem> ?? new();
+    var forcedOpen  = ViewBag.ForcedOpen  as List<NetSession>         ?? new();
+
+    var days = new[] {
+        DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+        DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday
+    };
+
+    // Nets that have schedule rules (excludes ad-hoc holiday net)
+    var scheduledNets = nets.Where(n => rules.Any(r => r.NetId == n.Id)).ToList();
+
+    // Quick lookups
+    var standingMap = standings
+        .GroupBy(sa => (sa.NetId, sa.DayOfWeek))
+        .ToDictionary(g => g.Key, g => g.First());
+
+    var ruleSet = rules.Select(r => (r.NetId, r.DayOfWeek)).ToHashSet();
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start mb-1 flex-wrap gap-2">
+        <h2 class="mb-0">Manage Assignments</h2>
+        <a asp-action="Calendar" class="btn btn-outline-primary btn-sm">
+            &#128197; Weekly Calendar
+        </a>
+    </div>
+    <p class="text-muted mb-4">
+        Set who runs each net each day. Assignments in the <strong>Regular Schedule</strong> repeat
+        automatically every week — only use <strong>Exceptions</strong> when a sub is needed for a specific date.
+    </p>
+
+    @* ── Two-column layout: left = Regular Schedule + action cards, right = Exceptions *@
+    <div class="row g-4 align-items-start">
+
+        @* ── LEFT COLUMN ──────────────────────────────────────────────────────── *@
+        <div class="col-12 col-xl-6 d-flex flex-column gap-4">
+
+            @* ── Section 2a: Assign Sub for Any Date ──────────────────────────── *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">Assign a Sub for Any Date</h5>
+                    <small class="text-muted">
+                        Override any session directly — no unavailability report needed. The sub is confirmed immediately for that specific date only.
+                    </small>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AssignByDate" method="post" class="row g-3 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Net</label>
+                            <select name="netId" class="form-select" required>
+                                <option value="">— Select net —</option>
+                                @foreach (var net in nets)
+                                {
+                                    <option value="@net.Id">@net.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" class="form-control"
+                                   min="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="form-label fw-semibold">Substitute</label>
+                            <select name="controllerId" class="form-select" required>
+                                <option value="0">— Select controller —</option>
+                                @foreach (var nc in controllers)
+                                {
+                                    <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-sm-4">
+                            <button type="submit" class="btn btn-primary w-100">Assign Sub</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            @* ── Section 2b: Mark Date as Open ────────────────────────────────── *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">Mark Date as Open</h5>
+                    <small class="text-muted">
+                        Flag a specific net date as needing a sub — even if the regular NCS hasn't filed unavailability.
+                        The slot will appear as <strong>NEED NCS</strong> on the public schedule and in the volunteer sign-up list.
+                    </small>
+                </div>
+                <div class="card-body">
+                    <form asp-action="ForceOpen" method="post" class="row g-3 align-items-end mb-0">
+                        @Html.AntiForgeryToken()
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Net</label>
+                            <select name="netId" class="form-select" required>
+                                <option value="">— Select net —</option>
+                                @foreach (var net in nets)
+                                {
+                                    <option value="@net.Id">@net.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold">Date</label>
+                            <input type="date" name="date" class="form-control"
+                                   min="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-warning">Mark as Open</button>
+                        </div>
+                    </form>
+
+                    @if (forcedOpen.Any())
+                    {
+                        <hr class="my-3" />
+                        <p class="mb-2 text-muted small fw-semibold">Currently force-marked as open:</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var s in forcedOpen)
+                            {
+                                <span class="badge bg-warning text-dark fs-6 fw-normal d-inline-flex align-items-center gap-2 px-3 py-2">
+                                    @s.Net?.Name — @s.SessionDate.ToString("ddd, MMM d")
+                                    <form asp-action="RemoveForceOpen" method="post" class="d-inline m-0 p-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sessionId" value="@s.Id" />
+                                        <button type="submit"
+                                                class="btn-close btn-close-white ms-1"
+                                                style="font-size: 0.55rem; opacity: 0.8;"
+                                                title="Clear forced-open status"
+                                                onclick="return confirm('Clear the open flag for this date?')"></button>
+                                    </form>
+                                </span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* ── Section 1: Regular Schedule ──────────────────────────────────── *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">Regular Schedule</h5>
+                    <small class="text-muted">
+                        Pick a controller for each day — they run that net every week until you change it or assign a sub below.
+                        Choose <em>— Unassigned —</em> to clear a slot.
+                    </small>
+                </div>
+                <div class="card-body p-0">
+                    @if (!scheduledNets.Any())
+                    {
+                        <div class="p-4 text-center text-muted">
+                            No nets assigned to you yet. Contact the administrator.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered mb-0 align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="min-width:110px">Day</th>
+                                        @foreach (var net in scheduledNets)
+                                        {
+                                            <th class="text-center" style="min-width:240px">
+                                                @net.Name
+                                                <br /><small class="fw-normal opacity-75">@net.ScheduledTimeUtc.ToString("HH:mm")z</small>
+                                            </th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var day in days)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold ps-3">@day</td>
+                                            @foreach (var net in scheduledNets)
+                                            {
+                                                var hasRule = ruleSet.Contains((net.Id, day));
+                                                standingMap.TryGetValue((net.Id, day), out var current);
+
+                                                if (hasRule)
+                                                {
+                                                    <td class="p-1">
+                                                        <form asp-action="SetStanding" method="post"
+                                                              class="d-flex gap-1 align-items-center px-1">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="netId" value="@net.Id" />
+                                                            <input type="hidden" name="dayOfWeek" value="@((int)day)" />
+                                                            <select name="netControllerId" class="form-select form-select-sm flex-grow-1">
+                                                                <option value="0">— Unassigned —</option>
+                                                                @foreach (var nc in controllers)
+                                                                {
+                                                                    if (current?.NetControllerId == nc.Id)
+                                                                    {
+                                                                        <option value="@nc.Id" selected>@nc.Callsign – @nc.Name</option>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                                                                    }
+                                                                }
+                                                            </select>
+                                                            <button type="submit" class="btn btn-sm btn-primary px-2">Save</button>
+                                                        </form>
+                                                    </td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="table-secondary text-center text-muted small">—</td>
+                                                }
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>@* /LEFT COLUMN *@
+
+        @* ── RIGHT COLUMN: Exceptions ──────────────────────────────────────────── *@
+        <div class="col-12 col-xl-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">Exceptions — Next 4 Weeks</h5>
+                    <small class="text-muted">
+                        Dates where the regular controller is unavailable or a volunteer has offered to cover.
+                        Assigning a sub here only affects that specific date.
+                    </small>
+                </div>
+                <div class="card-body @(exceptions.Any() ? "p-0" : "")">
+                    @if (!exceptions.Any())
+                    {
+                        <p class="text-success fw-semibold mb-0">
+                            ✓ All sessions are covered — no exceptions in the next 4 weeks.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Net</th>
+                                        <th>Regular NCS</th>
+                                        <th>Volunteers</th>
+                                        <th style="min-width:240px">Assign Sub</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in exceptions)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold text-nowrap">
+                                                @item.Session.SessionDate.ToString("ddd MMM d")
+                                                <br /><small class="text-muted">@item.Session.ScheduledTimeUtc.ToString("HH:mm")z</small>
+                                            </td>
+                                            <td>@item.Session.Net?.Name</td>
+                                            <td>
+                                                @if (item.StandingController is not null)
+                                                {
+                                                    <span class="slot-callsign">@item.StandingController.Callsign</span>
+                                                    @if (item.Session.IsForcedOpen)
+                                                    {
+                                                        <span class="badge bg-warning text-dark ms-1 small">force-opened</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary ms-1 small">unavailable</span>
+                                                    }
+                                                }
+                                                else if (item.Session.IsForcedOpen)
+                                                {
+                                                    <span class="text-muted fst-italic">none assigned</span>
+                                                    <span class="badge bg-warning text-dark ms-1 small">force-opened</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted fst-italic">none assigned</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.Volunteers.Any())
+                                                {
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach (var vol in item.Volunteers)
+                                                        {
+                                                            <form asp-action="Confirm" method="post" class="d-inline">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="assignmentId" value="@vol.Id" />
+                                                                <button type="submit" class="btn btn-sm btn-success">
+                                                                    ✓ @vol.NetController?.Callsign
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">—</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <form asp-action="Assign" method="post" class="d-flex gap-1 align-items-center">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="sessionId" value="@item.Session.Id" />
+                                                    <select name="controllerId" class="form-select form-select-sm flex-grow-1">
+                                                        <option value="0">— Pick a sub —</option>
+                                                        @foreach (var nc in controllers)
+                                                        {
+                                                            <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                                                        }
+                                                    </select>
+                                                    <button type="submit" class="btn btn-sm btn-primary px-2">Assign</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>@* /RIGHT COLUMN *@
+
+    </div>@* /row *@
+</div>

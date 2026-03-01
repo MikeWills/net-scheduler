@@ -1,0 +1,70 @@
+@model NcsScheduler.Models.ViewModels.NetEditViewModel
+
+<input type="hidden" asp-for="Id" />
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-2">
+        <label asp-for="Band" class="form-label"></label>
+        <input asp-for="Band" class="form-control" placeholder="e.g. 80m" />
+    </div>
+    <div class="col-md-2">
+        <label asp-for="FrequencyMhz" class="form-label"></label>
+        <input asp-for="FrequencyMhz" class="form-control" placeholder="e.g. 3.825" />
+    </div>
+    <div class="col-md-2">
+        <label asp-for="FrequencyRange" class="form-label"></label>
+        <input asp-for="FrequencyRange" class="form-control" placeholder="e.g. ±5 kHz" />
+    </div>
+</div>
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+</div>
+<div class="mb-3">
+    <label asp-for="ScheduledTimeUtc" class="form-label"></label>
+    <input asp-for="ScheduledTimeUtc" class="form-control" type="time" style="max-width:150px" />
+    <div class="form-text">Enter in UTC (Zulu) time, e.g. 03:00 for 0300z</div>
+    <span asp-validation-for="ScheduledTimeUtc" class="text-danger small"></span>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Days this net runs (leave all unchecked for ad-hoc/holiday nets)</label>
+    <div class="d-flex flex-wrap gap-3">
+        @foreach (DayOfWeek dow in Enum.GetValues<DayOfWeek>())
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="SelectedDays" value="@((int)dow)"
+                       id="day_@dow"
+                       @(Model.SelectedDays.Contains(dow) ? "checked" : "") />
+                <label class="form-check-label" for="day_@dow">@dow</label>
+            </div>
+        }
+    </div>
+</div>
+<div class="mb-3 form-check">
+    <input asp-for="IsActive" class="form-check-input" />
+    <label asp-for="IsActive" class="form-check-label">Active</label>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-3">
+        <label asp-for="SeasonStart" class="form-label"></label>
+        <input asp-for="SeasonStart" class="form-control" type="date" />
+    </div>
+    <div class="col-sm-3">
+        <label asp-for="SeasonEnd" class="form-label"></label>
+        <input asp-for="SeasonEnd" class="form-control" type="date" />
+    </div>
+    <div class="col-sm-6 d-flex align-items-end pb-1">
+        <span class="text-muted small">
+            Leave both blank for a year-round net. Only month &amp; day matter — the year is ignored.
+            Wrap-around ranges work (e.g. Oct 1 – Mar 31 for a winter net).
+        </span>
+    </div>
+</div>

@@ -1,0 +1,32 @@
+@model NcsScheduler.Models.ViewModels.InviteViewModel
+@{ ViewData["Title"] = "Send Invitation"; }
+
+<div class="row justify-content-center mt-3">
+    <div class="col-md-6">
+        <h2>Send Invitation</h2>
+        <p class="text-muted">Select an existing controller record and enter their email. They will receive a link to create their account.</p>
+
+        <form asp-action="Send" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="NetControllerId" class="form-label">Net Controller</label>
+                <select asp-for="NetControllerId" class="form-select"
+                        asp-items="@(new SelectList(ViewBag.Controllers as IEnumerable<NcsScheduler.Models.Domain.NetController>, "Id", "Callsign"))">
+                    <option value="">-- Select Controller --</option>
+                </select>
+                <span asp-validation-for="NetControllerId" class="text-danger small"></span>
+                <div class="form-text">Only controllers without an account are shown.</div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label">Email Address</label>
+                <input asp-for="Email" class="form-control" type="email" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-dark">Send Invitation</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } }

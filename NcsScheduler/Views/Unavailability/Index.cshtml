@@ -1,0 +1,71 @@
+@model List<NcsScheduler.Models.Domain.Unavailability>
+@{ ViewData["Title"] = "My Unavailability"; }
+
+<div class="mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>My Unavailability</h2>
+        <a asp-action="Create" class="btn btn-dark">+ Mark Unavailable</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">You have no upcoming unavailability marked.</div>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date(s)</th>
+                    <th>Duration</th>
+                    <th>Net</th>
+                    <th>Reason</th>
+                    <th>Marked</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    var days = u.StartDate.DayNumber - u.EndDate.DayNumber; // negative, so use abs
+                    var span = u.EndDate.DayNumber - u.StartDate.DayNumber + 1;
+                    <tr>
+                        <td class="fw-bold">
+                            @if (u.StartDate == u.EndDate)
+                            {
+                                @u.StartDate.ToString("ddd, MMMM d, yyyy")
+                            }
+                            else
+                            {
+                                @u.StartDate.ToString("ddd, MMM d")
+                                <span class="text-muted mx-1">–</span>
+                                @u.EndDate.ToString("ddd, MMM d, yyyy")
+                            }
+                        </td>
+                        <td class="text-muted small">
+                            @if (span == 1)
+                            {
+                                <span>1 day</span>
+                            }
+                            else
+                            {
+                                <span>@span days</span>
+                            }
+                        </td>
+                        <td>@(u.Net?.Name ?? "All nets")</td>
+                        <td>@(u.Reason ?? "—")</td>
+                        <td class="text-muted small">@u.MarkedAt.ToString("M/d/yy")</td>
+                        <td class="text-nowrap">
+                            <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                            <form asp-action="Delete" method="post" onsubmit="return confirm('Remove this unavailability?')" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@u.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

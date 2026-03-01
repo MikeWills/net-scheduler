@@ -1,0 +1,104 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}
+
+/* ================================================
+   Schedule Grid Slot Styles
+   ================================================ */
+
+.slot-normal {
+  background-color: transparent;
+}
+
+/* Open slot — needs NCS */
+.slot-open {
+  background-color: rgba(220, 53, 69, 0.12);
+  border-left: 3px solid #dc3545;
+}
+
+.slot-open .slot-label {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* Slot with a volunteer pending confirmation */
+.slot-volunteer {
+  background-color: rgba(255, 193, 7, 0.15);
+  border-left: 3px solid #ffc107;
+}
+
+.slot-volunteer .slot-label {
+  color: #856404;
+  font-weight: 600;
+}
+
+/* No session for this day/net combo */
+.slot-none {
+  background-color: transparent;
+  color: var(--bs-secondary-color);
+}
+
+/* Schedule table cell padding */
+.schedule-table td,
+.schedule-table th {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+}
+
+.schedule-table td {
+  white-space: nowrap;
+}
+
+/* Callsign text in slot */
+.slot-callsign {
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.slot-member {
+  font-size: 0.78rem;
+  color: var(--bs-secondary-color);
+}
+
+/* Dashboard open-slot cards */
+.open-slot-card {
+  border-left: 4px solid #dc3545;
+}
+
+/* Standing assignment badges */
+.standing-badge {
+  font-size: 0.75rem;
+  background-color: #e9ecef;
+  color: #495057;
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.5rem;
+}

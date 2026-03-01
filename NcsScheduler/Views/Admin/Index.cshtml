@@ -1,0 +1,116 @@
+@model NcsScheduler.Models.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-gear-fill me-2"></i>Admin Dashboard</h2>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="display-4 fw-bold text-primary">@Model.TotalControllers</div>
+                    <div class="text-muted mt-1">Active Net Controllers</div>
+                    <a asp-controller="Controllers" asp-action="Index" class="btn btn-sm btn-outline-primary mt-3">Manage Controllers</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="display-4 fw-bold text-success">@Model.TotalNets</div>
+                    <div class="text-muted mt-1">Active Nets</div>
+                    <a asp-controller="Nets" asp-action="Index" class="btn btn-sm btn-outline-success mt-3">Manage Nets</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="display-4 fw-bold text-warning">@Model.OpenSlotCount</div>
+                    <div class="text-muted mt-1">Open Slots (Next 8 Weeks)</div>
+                    <a asp-controller="Assignments" asp-action="Index" class="btn btn-sm btn-outline-warning mt-3">View Assignments</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">Schedule Management</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a asp-action="StandingAssignments" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">📅</span>
+                        <div>
+                            <div class="fw-semibold">Standing Assignments</div>
+                            <small class="text-muted">Manage default net controllers by day of week</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-controller="Assignments" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">✏️</span>
+                        <div>
+                            <div class="fw-semibold">Session Assignments</div>
+                            <small class="text-muted">Assign NCS to specific sessions / confirm volunteers</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">People & Access</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a asp-controller="Controllers" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">👤</span>
+                        <div>
+                            <div class="fw-semibold">Net Controllers</div>
+                            <small class="text-muted">Add, edit, or deactivate net controllers</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-controller="Coordinators" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">🎖️</span>
+                        <div>
+                            <div class="fw-semibold">Band Coordinators</div>
+                            <small class="text-muted">Promote controllers and manage net assignments</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-action="Users" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">🔑</span>
+                        <div>
+                            <div class="fw-semibold">Manage Users</div>
+                            <small class="text-muted">Grant or revoke Admin / Coordinator roles</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-controller="Invitation" asp-action="Send" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">✉️</span>
+                        <div>
+                            <div class="fw-semibold">Send Invitation</div>
+                            <small class="text-muted">Invite a net controller to create their account</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                    <a asp-controller="Nets" asp-action="Index" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="me-3 fs-4">📻</span>
+                        <div>
+                            <div class="fw-semibold">Nets</div>
+                            <small class="text-muted">Configure nets, schedules, and controller pools</small>
+                        </div>
+                        <i class="ms-auto bi bi-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

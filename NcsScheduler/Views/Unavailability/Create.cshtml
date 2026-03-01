@@ -1,0 +1,63 @@
+@model NcsScheduler.Models.ViewModels.UnavailabilityCreateViewModel
+@{ ViewData["Title"] = "Mark Unavailable"; }
+
+<div class="row justify-content-center mt-3">
+    <div class="col-md-6">
+        <h2>Mark Unavailable</h2>
+        <p class="text-muted">Use the same date for both fields if you're only unavailable for a single day.</p>
+
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <label asp-for="StartDate" class="form-label"></label>
+                    <input asp-for="StartDate" class="form-control" type="date" id="startDate" />
+                    <span asp-validation-for="StartDate" class="text-danger small"></span>
+                </div>
+                <div class="col-sm-6">
+                    <label asp-for="EndDate" class="form-label"></label>
+                    <input asp-for="EndDate" class="form-control" type="date" id="endDate" />
+                    <span asp-validation-for="EndDate" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="NetId" class="form-label"></label>
+                <select asp-for="NetId" class="form-select"
+                        asp-items="@(new SelectList(ViewBag.Nets as IEnumerable<NcsScheduler.Models.Domain.Net>, "Id", "Name"))">
+                    <option value="">All nets (unavailable for everything in this period)</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label"></label>
+                <input asp-for="Reason" class="form-control" placeholder="Optional — vacation, prior commitment, etc." />
+            </div>
+
+            <button type="submit" class="btn btn-dark">Submit</button>
+            <a asp-action="Index" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        // Keep EndDate >= StartDate automatically as the user picks dates
+        document.getElementById('startDate').addEventListener('change', function () {
+            var end = document.getElementById('endDate');
+            if (end.value && end.value < this.value) {
+                end.value = this.value;
+            }
+            end.min = this.value;
+        });
+        // On load, enforce min on EndDate
+        (function () {
+            var start = document.getElementById('startDate');
+            var end = document.getElementById('endDate');
+            if (start.value) end.min = start.value;
+        })();
+    </script>
+}

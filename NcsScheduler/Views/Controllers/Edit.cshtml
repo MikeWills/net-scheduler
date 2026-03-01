@@ -1,0 +1,15 @@
+@model NcsScheduler.Models.ViewModels.ControllerEditViewModel
+@{ ViewData["Title"] = "Edit Net Controller"; }
+
+<div class="row justify-content-center mt-3">
+    <div class="col-md-7">
+        <h2>Edit — @Model.Callsign</h2>
+        <form asp-action="Edit" method="post">
+            @await Html.PartialAsync("_ControllerForm", Model)
+            <button type="submit" class="btn btn-dark">Save</button>
+            <a asp-action="Index" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } }

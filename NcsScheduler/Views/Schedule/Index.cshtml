@@ -1,0 +1,144 @@
+@model NcsScheduler.Models.ViewModels.ScheduleViewModel
+@using NcsScheduler.Models.Domain
+@{
+    ViewData["Title"] = "Net Schedule";
+
+    // Build a lookup of net info keyed by NetId
+    var netLookup = Model.Nets.ToDictionary(n => n.NetId);
+
+    // Flatten all resolved slots, sorted by UTC date then time, grouped by UTC date.
+    // No server-side cutoff — JS filters out rows > 1 hour past in the user's local TZ
+    // and relabels day headers with the correct local date.
+    var allSlots = Model.Weeks
+        .SelectMany(w => w.Slots.Values)
+        .OrderBy(s => s.SessionDate)
+        .ThenBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue)
+        .GroupBy(s => s.SessionDate)
+        .OrderBy(g => g.Key)
+        .ToList();
+}
+
+<div class="px-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Net Schedule</h2>
+        <div class="d-flex flex-wrap gap-1 align-items-center">
+            <span class="badge bg-secondary">Regular</span>
+            <span class="badge slot-open-badge">NEED NCS</span>
+            <span class="badge slot-volunteer-badge">Volunteer Pending</span>
+        </div>
+    </div>
+
+    @if (!allSlots.Any())
+    {
+        <div class="alert alert-info">No sessions scheduled in this window.</div>
+    }
+    else
+    {
+        @foreach (var day in allSlots)
+        {
+            <div class="day-group mb-4">
+                <div class="day-header px-3 py-2 mb-0 rounded-top">
+                    <strong class="day-header-text">@day.Key.ToString("dddd, MMMM d, yyyy")</strong>
+                </div>
+                <table class="table table-sm table-hover mb-0 border rounded-bottom">
+                    <thead class="table-light border-bottom">
+                        <tr>
+                            <th style="min-width:160px">Net</th>
+                            <th style="min-width:140px">NCS</th>
+                            <th class="text-nowrap">UTC</th>
+                            <th class="text-nowrap">Local</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var slot in day.OrderBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue))
+                        {
+                            var net = netLookup.GetValueOrDefault(slot.NetId);
+                            var utcIso = $"{slot.SessionDate:yyyy-MM-dd}T{net?.ScheduledTimeUtc:HH\\:mm\\:ss}Z";
+                            <tr class="@slot.CssClass" data-utc="@utcIso">
+                                <td>
+                                    <span class="fw-semibold">@(net?.NetName ?? "—")</span>
+                                </td>
+                                <td>
+                                    @if (slot.NeedsNcs && !slot.HasVolunteer)
+                                    {
+                                        <span class="fw-bold text-danger">NEED NCS</span>
+                                    }
+                                    else if (slot.HasVolunteer)
+                                    {
+                                        <span class="fw-bold text-warning">Volunteer Pending</span>
+                                    }
+                                    else if (slot.CopyPasteFormat is not null)
+                                    {
+                                        @if (User.Identity?.IsAuthenticated == true)
+                                        {
+                                            <span class="font-monospace">@slot.CopyPasteFormat</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@slot.Callsign</span>
+                                        }
+                                        @if (slot.AssignmentType == AssignmentType.Substitute)
+                                        {
+                                            <span class="badge bg-info text-dark ms-1">sub</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-nowrap text-muted small">
+                                    @(net?.ScheduledTimeUtc.ToString("HH:mm"))z
+                                </td>
+                                <td class="text-nowrap small">
+                                    <span class="local-time" data-utc="@utcIso">—</span>
+                                </td>
+                                <td class="font-monospace small">
+                                    @if (!string.IsNullOrWhiteSpace(net?.FrequencyMhz))
+                                    {
+                                        @net.FrequencyMhz
+                                        if (!string.IsNullOrWhiteSpace(net.FrequencyRange))
+                                        {
+                                            <span class="text-muted ms-1">@net.FrequencyRange</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+<style>
+    .day-header {
+        background-color: #212529;
+        color: #fff;
+        font-size: 1rem;
+    }
+    .slot-open  { background-color: #f8d7da !important; }
+    .slot-volunteer { background-color: #fff3cd !important; }
+    .slot-normal    { background-color: inherit; }
+    .slot-open-badge      { background-color: #dc3545 !important; }
+    .slot-volunteer-badge { background-color: #ffc107 !important; color: #000 !important; }
+</style>
+<script>
+(function () {
+    // Convert UTC timestamps to local times in the Local column
+    document.querySelectorAll('.local-time[data-utc]').forEach(function (el) {
+        var d = new Date(el.dataset.utc);
+        if (!isNaN(d)) {
+            el.textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
+    });
+})();
+</script>
+}

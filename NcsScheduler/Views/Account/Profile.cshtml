@@ -1,0 +1,73 @@
+@model NcsScheduler.Models.ViewModels.ProfileViewModel
+@{ ViewData["Title"] = "My Profile"; }
+
+<div class="row justify-content-center mt-3">
+    <div class="col-md-7">
+        <h2>My Profile</h2>
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-4 text-muted">Callsign</div>
+                    <div class="col-8 fw-bold">@Model.Callsign</div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.MemberNumber))
+                {
+                    <div class="row mb-2">
+                        <div class="col-4 text-muted">Member #</div>
+                        <div class="col-8">@Model.MemberNumber</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-4 text-muted">Copy-paste format</div>
+                        <div class="col-8 font-monospace">@Model.Callsign #@Model.MemberNumber</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <form asp-action="Profile" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" type="email" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" type="tel" />
+                <span asp-validation-for="Phone" class="text-danger small"></span>
+            </div>
+
+            <h5 class="mt-4">Email Notifications</h5>
+            <div class="mb-2 form-check">
+                <input asp-for="NotifyOnSlotOpened" class="form-check-input" />
+                <label asp-for="NotifyOnSlotOpened" class="form-check-label"></label>
+            </div>
+            <div class="mb-3 form-check">
+                <input asp-for="NotifyOnAssigned" class="form-check-input" />
+                <label asp-for="NotifyOnAssigned" class="form-check-label"></label>
+            </div>
+
+            <h5 class="mt-4">Change Password</h5>
+            <div class="mb-3">
+                <label asp-for="NewPassword" class="form-label"></label>
+                <input asp-for="NewPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="NewPassword" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-dark">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } }

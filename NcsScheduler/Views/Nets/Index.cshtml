@@ -1,0 +1,54 @@
+@model List<NcsScheduler.Models.Domain.Net>
+@{ ViewData["Title"] = "Manage Nets"; }
+
+<div class="mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Nets</h2>
+        <a asp-action="Create" class="btn btn-dark">+ Add Net</a>
+    </div>
+
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr><th>Name</th><th>Band</th><th>Frequency</th><th>Time (UTC)</th><th>Schedule</th><th>Coordinator</th><th>Active</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var net in Model)
+            {
+                <tr class="@(net.IsActive ? "" : "table-secondary text-muted")">
+                    <td class="fw-bold">@net.Name</td>
+                    <td>@net.Band</td>
+                    <td class="small font-monospace">
+                        @if (!string.IsNullOrEmpty(net.FrequencyMhz))
+                        {
+                            @net.FrequencyMhz
+                            @if (!string.IsNullOrEmpty(net.FrequencyRange))
+                            {
+                                <span class="text-muted ms-1">@net.FrequencyRange</span>
+                            }
+                        }
+                        else { <span class="text-muted">—</span> }
+                    </td>
+                    <td>@net.ScheduledTimeUtc.ToString("HH:mm")z</td>
+                    <td class="small">
+                        @if (!net.ScheduleRules.Any())
+                        {
+                            <span class="text-muted">Ad-hoc</span>
+                        }
+                        else
+                        {
+                            @string.Join(", ", net.ScheduleRules.OrderBy(r => r.DayOfWeek).Select(r => r.DayOfWeek.ToString()[..3]))
+                        }
+                    </td>
+                    <td class="small">
+                        @(net.CoordinatorAssignments.FirstOrDefault()?.BandCoordinator?.NetController?.Callsign ?? "—")
+                    </td>
+                    <td>
+                        @if (net.IsActive) { <span class="badge bg-success">Active</span> }
+                        else { <span class="badge bg-secondary">Inactive</span> }
+                    </td>
+                    <td><a asp-action="Edit" asp-route-id="@net.Id" class="btn btn-sm btn-outline-dark">Edit</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

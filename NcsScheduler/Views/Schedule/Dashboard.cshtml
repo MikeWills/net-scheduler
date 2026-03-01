@@ -1,0 +1,140 @@
+@model NcsScheduler.Models.ViewModels.DashboardViewModel
+@using NcsScheduler.Models.Domain
+@{ ViewData["Title"] = "Dashboard"; }
+
+<div class="row mt-3">
+    <div class="col-12">
+        <h2>
+            Dashboard
+            @if (!string.IsNullOrEmpty(Model.Callsign))
+            {
+                <small class="text-muted fs-5 ms-2">@Model.CopyPaste</small>
+            }
+        </h2>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <!-- Open Slots I Can Cover -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white d-flex justify-content-between">
+                <span>Open Slots</span>
+                <span class="badge bg-white text-danger">@Model.OpenSlots.Count</span>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.OpenSlots.Any())
+                {
+                    <p class="text-muted p-3 mb-0">No open slots right now.</p>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Net</th><th>Date</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var slot in Model.OpenSlots)
+                            {
+                                <tr>
+                                    <td>@slot.NetName</td>
+                                    <td class="text-nowrap">@slot.SessionDate.ToString("ddd M/d/yy") @slot.ScheduledTimeUtc.ToString("HH:mm")z</td>
+                                    <td>
+                                        @if (slot.AlreadyVolunteered)
+                                        {
+                                            <span class="badge bg-warning text-dark">Volunteered</span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-controller="Volunteer" asp-action="Volunteer" method="post" class="d-inline">
+                                                <input type="hidden" name="sessionId" value="@slot.SessionId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Volunteer</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- My Upcoming Nets -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark text-white">My Upcoming Nets</div>
+            <div class="card-body p-0">
+                @if (!Model.MyUpcomingNets.Any())
+                {
+                    <p class="text-muted p-3 mb-0">No nets scheduled in the next 14 days.</p>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Date (UTC)</th><th>Local</th><th>Net</th><th>Frequency</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.MyUpcomingNets)
+                            {
+                                var utcIso = $"{item.SessionDate:yyyy-MM-dd}T{item.ScheduledTimeUtc:HH:mm:ss}Z";
+                                <tr>
+                                    <td class="text-nowrap">
+                                        @item.SessionDate.ToString("ddd M/d")
+                                        <br /><small class="text-muted">@item.ScheduledTimeUtc.ToString("HH:mm")z</small>
+                                    </td>
+                                    <td class="text-nowrap small">
+                                        <span class="local-time" data-utc="@utcIso">—</span>
+                                    </td>
+                                    <td>
+                                        @item.NetName
+                                        @if (item.IsSubstitute)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">Sub</span>
+                                        }
+                                    </td>
+                                    <td class="text-nowrap small font-monospace">
+                                        @if (!string.IsNullOrEmpty(item.FrequencyMhz))
+                                        {
+                                            @item.FrequencyMhz
+                                            @if (!string.IsNullOrEmpty(item.FrequencyRange))
+                                            {
+                                                <br /><span class="text-muted fw-normal">@item.FrequencyRange</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick link to mark unavailability -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">Quick Actions</div>
+            <div class="card-body">
+                <a asp-controller="Unavailability" asp-action="Create" class="btn btn-outline-secondary me-2">Mark Unavailable</a>
+                <a asp-controller="Schedule" asp-action="Index" class="btn btn-outline-dark">View Full Schedule</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('.local-time[data-utc]').forEach(function (el) {
+        var d = new Date(el.dataset.utc);
+        el.textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    });
+</script>
+}
