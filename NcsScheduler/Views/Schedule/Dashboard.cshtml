@@ -64,7 +64,14 @@
     <!-- My Upcoming Nets -->
     <div class="col-md-6">
         <div class="card h-100">
-            <div class="card-header bg-dark text-white">My Upcoming Nets</div>
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span>My Upcoming Nets</span>
+                @if (Model.IcalFeedUrl is not null)
+                {
+                    <a href="@Model.IcalFeedUrl" class="btn btn-sm btn-outline-light py-0"
+                       title="Subscribe to your net schedule in any calendar app">📅 Subscribe</a>
+                }
+            </div>
             <div class="card-body p-0">
                 @if (!Model.MyUpcomingNets.Any())
                 {

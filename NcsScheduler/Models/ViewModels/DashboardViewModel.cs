@@ -13,6 +13,9 @@ public class DashboardViewModel
     public HashSet<DateOnly> MyUnavailableDates { get; set; } = [];
     public List<OpenSlotItem> OpenSlots { get; set; } = [];
     public List<UpcomingNetItem> MyUpcomingNets { get; set; } = [];
+
+    /// <summary>Absolute URL for this controller's iCal calendar feed, or null if unavailable.</summary>
+    public string? IcalFeedUrl { get; set; }
 }
 
 public class UpcomingNetItem

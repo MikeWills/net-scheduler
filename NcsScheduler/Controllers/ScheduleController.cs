@@ -212,6 +212,10 @@ public class ScheduleController : Controller
             }
         }
 
+        var icalUrl = !string.IsNullOrEmpty(nc.IcalToken)
+            ? Url.Action("Feed", "Ical", new { token = nc.IcalToken }, Request.Scheme)
+            : null;
+
         var vm = new DashboardViewModel
         {
             Callsign = nc.Callsign,
@@ -220,7 +224,8 @@ public class ScheduleController : Controller
             MyStandingAssignments = myStanding,
             MyUnavailableDates = myUnavailable,
             OpenSlots = openSlots.OrderBy(s => s.SessionDate).ToList(),
-            MyUpcomingNets = upcoming.OrderBy(u => u.SessionDate).ThenBy(u => u.ScheduledTimeUtc).ToList()
+            MyUpcomingNets = upcoming.OrderBy(u => u.SessionDate).ThenBy(u => u.ScheduledTimeUtc).ToList(),
+            IcalFeedUrl = icalUrl
         };
 
         return View(vm);
