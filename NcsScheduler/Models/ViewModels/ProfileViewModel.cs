@@ -30,4 +30,7 @@ public class ProfileViewModel
     [Display(Name = "Confirm new password")]
     [Compare(nameof(NewPassword))]
     public string? ConfirmPassword { get; set; }
+
+    /// <summary>Absolute URL for this controller's personal iCal calendar feed.</summary>
+    public string? IcalFeedUrl { get; set; }
 }

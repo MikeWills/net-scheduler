@@ -41,6 +41,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(x => x.Callsign)
             .IsUnique();
 
+        // Unique: iCal tokens must be unique (sparse — only set when first requested)
+        builder.Entity<NetController>()
+            .HasIndex(x => x.IcalToken)
+            .IsUnique()
+            .HasFilter("[IcalToken] IS NOT NULL");
+
         // Unique: one session per net per date
         builder.Entity<NetSession>()
             .HasIndex(x => new { x.NetId, x.SessionDate })

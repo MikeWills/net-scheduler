@@ -72,6 +72,18 @@ public class AccountController : Controller
         if (user is null) return RedirectToAction("Login");
 
         var nc = user.NetController;
+
+        // Auto-generate an iCal token the first time the profile is visited
+        if (nc is not null && string.IsNullOrEmpty(nc.IcalToken))
+        {
+            nc.IcalToken = Guid.NewGuid().ToString("N"); // 32 hex chars, no dashes
+            await _db.SaveChangesAsync();
+        }
+
+        var icalUrl = nc?.IcalToken is not null
+            ? Url.Action("Feed", "Ical", new { token = nc.IcalToken }, Request.Scheme)
+            : null;
+
         var vm = new ProfileViewModel
         {
             Callsign = nc?.Callsign ?? "",
@@ -80,7 +92,8 @@ public class AccountController : Controller
             Email = nc?.Email ?? user.Email,
             Phone = nc?.Phone,
             NotifyOnSlotOpened = nc?.NotifyOnSlotOpened ?? false,
-            NotifyOnAssigned = nc?.NotifyOnAssigned ?? false
+            NotifyOnAssigned = nc?.NotifyOnAssigned ?? false,
+            IcalFeedUrl = icalUrl
         };
         return View(vm);
     }

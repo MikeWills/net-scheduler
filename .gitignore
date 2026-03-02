@@ -368,3 +368,6 @@ FodyWeavers.xsd
 # Secrets — never commit real credentials
 /NcsScheduler/appsettings.Production.json
 /NcsScheduler/appsettings.Staging.json
+
+# Windows reserved device name left by git filter-branch
+nul

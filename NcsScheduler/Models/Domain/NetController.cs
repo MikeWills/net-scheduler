@@ -18,6 +18,12 @@ public class NetController
     public bool NotifyOnSlotOpened { get; set; }
     public bool NotifyOnAssigned { get; set; }
 
+    /// <summary>
+    /// Opaque token that authenticates the personal iCal calendar feed URL.
+    /// Regenerating this token revokes any previously shared feed URLs.
+    /// </summary>
+    public string? IcalToken { get; set; }
+
     // Navigation
     public ICollection<StandingAssignment> StandingAssignments { get; set; } = [];
     public ICollection<Unavailability> Unavailabilities { get; set; } = [];
