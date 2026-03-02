@@ -157,6 +157,9 @@ Roles are managed at **Admin → Manage Users**. A user can hold multiple roles.
 
 ```json
 {
+  "App": {
+    "BaseUrl": ""
+  },
   "ConnectionStrings": {
     "DefaultConnection": "Data Source=ncsscheduler.db"
   },
@@ -171,6 +174,10 @@ Roles are managed at **Admin → Manage Users**. A user can hold multiple roles.
   }
 }
 ```
+
+| Key | Purpose |
+|-----|---------|
+| `App:BaseUrl` | Public base URL used when generating absolute links (e.g. iCal feed URLs). Leave blank in development — the app will derive the URL from the incoming request. Set to your production domain (e.g. `https://ncs.example.com`) when deploying. |
 
 ### `appsettings.Development.json` — local only, not committed to source control
 
@@ -198,13 +205,14 @@ Secrets are stored in `%APPDATA%\Microsoft\UserSecrets\` (Windows) or `~/.micros
 Set these on your server; no file editing needed:
 
 ```bash
+App__BaseUrl=https://ncs.example.com
 Email__Username=your-smtp-username
 Email__Password=your-smtp-password
 ConnectionStrings__DefaultConnection=Data Source=/var/data/ncsscheduler.db
 ASPNETCORE_ENVIRONMENT=Production
 ```
 
-ASP.NET Core maps `__` (double-underscore) to `:` in config keys, so `Email__Password` becomes `Email:Password`.
+ASP.NET Core maps `__` (double-underscore) to `:` in config keys, so `App__BaseUrl` becomes `App:BaseUrl` and `Email__Password` becomes `Email:Password`.
 
 ---
 

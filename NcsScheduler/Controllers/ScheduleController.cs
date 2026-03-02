@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NcsScheduler.Data;
 using NcsScheduler.Models.Domain;
 using NcsScheduler.Models.ViewModels;
@@ -14,15 +15,33 @@ public class ScheduleController : Controller
     private readonly IScheduleService _scheduleService;
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly AppSettings _appSettings;
 
     public ScheduleController(
         IScheduleService scheduleService,
         ApplicationDbContext db,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IOptions<AppSettings> appSettings)
     {
         _scheduleService = scheduleService;
         _db = db;
         _userManager = userManager;
+        _appSettings = appSettings.Value;
+    }
+
+    /// <summary>
+    /// Builds an absolute URL for the iCal feed. Uses App:BaseUrl from configuration
+    /// when set (production), otherwise falls back to the current request's host (development).
+    /// </summary>
+    private string? BuildIcalUrl(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return null;
+
+        var baseUrl = _appSettings.BaseUrl?.TrimEnd('/');
+        if (!string.IsNullOrEmpty(baseUrl))
+            return $"{baseUrl}/Ical/Feed/{token}";
+
+        return Url.Action("Feed", "Ical", new { token }, Request.Scheme);
     }
 
     /// <summary>Public rolling 7-day schedule — no login required.</summary>
@@ -212,9 +231,7 @@ public class ScheduleController : Controller
             }
         }
 
-        var icalUrl = !string.IsNullOrEmpty(nc.IcalToken)
-            ? Url.Action("Feed", "Ical", new { token = nc.IcalToken }, Request.Scheme)
-            : null;
+        var icalUrl = BuildIcalUrl(nc.IcalToken);
 
         var vm = new DashboardViewModel
         {

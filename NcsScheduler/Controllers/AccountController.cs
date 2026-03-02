@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NcsScheduler.Data;
 using NcsScheduler.Models.ViewModels;
+using NcsScheduler.Services;
 
 namespace NcsScheduler.Controllers;
 
@@ -12,15 +14,33 @@ public class AccountController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
+    private readonly AppSettings _appSettings;
 
     public AccountController(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        IOptions<AppSettings> appSettings)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _db = db;
+        _appSettings = appSettings.Value;
+    }
+
+    /// <summary>
+    /// Builds an absolute URL for the iCal feed. Uses App:BaseUrl from configuration
+    /// when set (production), otherwise falls back to the current request's host (development).
+    /// </summary>
+    private string? BuildIcalUrl(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return null;
+
+        var baseUrl = _appSettings.BaseUrl?.TrimEnd('/');
+        if (!string.IsNullOrEmpty(baseUrl))
+            return $"{baseUrl}/Ical/Feed/{token}";
+
+        return Url.Action("Feed", "Ical", new { token }, Request.Scheme);
     }
 
     [HttpGet]
@@ -80,9 +100,7 @@ public class AccountController : Controller
             await _db.SaveChangesAsync();
         }
 
-        var icalUrl = nc?.IcalToken is not null
-            ? Url.Action("Feed", "Ical", new { token = nc.IcalToken }, Request.Scheme)
-            : null;
+        var icalUrl = BuildIcalUrl(nc?.IcalToken);
 
         var vm = new ProfileViewModel
         {
