@@ -43,10 +43,10 @@ public class AdminController : Controller
             .ToListAsync();
 
         // Build a set of NetController IDs that have an active BandCoordinator record
-        var coordinatorNcIds = await _db.BandCoordinators
+        var coordinatorNcIds = (await _db.BandCoordinators
             .Where(bc => bc.IsActive)
             .Select(bc => bc.NetControllerId)
-            .ToHashSetAsync();
+            .ToListAsync()).ToHashSet();
 
         var vms = new List<UserRoleViewModel>();
         foreach (var user in allUsers)
