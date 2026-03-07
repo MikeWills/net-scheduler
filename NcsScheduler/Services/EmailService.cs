@@ -62,6 +62,18 @@ public class EmailService : IEmailService
         await SendAsync(controller.Email, controller.Name, subject, body);
     }
 
+    public async Task SendPasswordResetAsync(string toEmail, string toName, string resetUrl)
+    {
+        var subject = "Reset your NCS Scheduler password";
+        var body = $"""
+            <p>Hi {toName},</p>
+            <p>A password reset was requested for your NCS Scheduler account.</p>
+            <p><a href="{resetUrl}">Click here to reset your password</a></p>
+            <p>This link expires in 24 hours. If you did not request a reset, you can ignore this email.</p>
+            """;
+        await SendAsync(toEmail, toName, subject, body);
+    }
+
     private async Task SendAsync(string toEmail, string toName, string subject, string htmlBody)
     {
         if (string.IsNullOrWhiteSpace(_settings.SmtpHost) || string.IsNullOrWhiteSpace(_settings.FromAddress))
