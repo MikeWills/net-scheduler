@@ -99,21 +99,11 @@ public class ScheduleController : Controller
             for (var d = u.StartDate; d <= u.EndDate; d = d.AddDays(1))
                 myUnavailable.Add(d);
 
-        // Open slots in nets I'm in the pool for
-        var myNetIds = await _db.NetControllerPool
-            .Where(p => p.NetControllerId == nc.Id && p.IsActive)
-            .Select(p => p.NetId)
-            .ToListAsync();
-
-        // Also include standing assignment nets
-        myNetIds.AddRange(myStanding.Select(sa => sa.NetId));
-        myNetIds = myNetIds.Distinct().ToList();
-
+        // Open slots across all active nets — any NCS can run any net
         var openSessions = await _db.NetSessions
             .Include(s => s.Net)
             .Include(s => s.Assignments.Where(a => a.Status != AssignmentStatus.Cancelled))
             .Where(s =>
-                myNetIds.Contains(s.NetId) &&
                 s.Net.IsActive &&
                 s.SessionDate >= today &&
                 s.SessionDate <= end)

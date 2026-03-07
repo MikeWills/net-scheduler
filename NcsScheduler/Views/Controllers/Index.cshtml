@@ -15,7 +15,7 @@
 
     <table class="table table-hover">
         <thead class="table-dark">
-            <tr><th>Callsign</th><th>Member #</th><th>Name</th><th>Email</th><th>Phone</th><th>Nets</th><th>Account</th><th></th></tr>
+            <tr><th>Callsign</th><th>Member #</th><th>Name</th><th>Email</th><th>Phone</th><th>Account</th><th></th></tr>
         </thead>
         <tbody>
             @foreach (var nc in Model)
@@ -26,9 +26,6 @@
                     <td>@nc.Name</td>
                     <td><a href="mailto:@nc.Email">@nc.Email</a></td>
                     <td>@nc.Phone</td>
-                    <td class="small">
-                        @string.Join(", ", nc.PoolMemberships.Where(p => p.IsActive).Select(p => p.Net?.Name ?? ""))
-                    </td>
                     <td>
                         @if (nc.UserId is not null)
                         {

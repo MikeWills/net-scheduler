@@ -30,20 +30,6 @@
         <input asp-for="Phone" class="form-control" />
     </div>
 </div>
-<div class="mb-3">
-    <label class="form-label">Net Pool Membership</label>
-    <div class="d-flex flex-wrap gap-3">
-        @foreach (var net in ViewBag.Nets as IEnumerable<NcsScheduler.Models.Domain.Net> ?? [])
-        {
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="SelectedNetIds" value="@net.Id"
-                       id="net_@net.Id"
-                       @(Model.SelectedNetIds.Contains(net.Id) ? "checked" : "") />
-                <label class="form-check-label" for="net_@net.Id">@net.Name</label>
-            </div>
-        }
-    </div>
-</div>
 <div class="mb-3 form-check">
     <input asp-for="IsActive" class="form-check-input" />
     <label asp-for="IsActive" class="form-check-label">Active</label>

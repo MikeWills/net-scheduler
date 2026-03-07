@@ -21,7 +21,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Net> Nets => Set<Net>();
     public DbSet<NetScheduleRule> NetScheduleRules => Set<NetScheduleRule>();
     public DbSet<NetCoordinatorAssignment> NetCoordinatorAssignments => Set<NetCoordinatorAssignment>();
-    public DbSet<NetControllerPool> NetControllerPool => Set<NetControllerPool>();
     public DbSet<StandingAssignment> StandingAssignments => Set<StandingAssignment>();
     public DbSet<NetSession> NetSessions => Set<NetSession>();
     public DbSet<SessionAssignment> SessionAssignments => Set<SessionAssignment>();
@@ -31,10 +30,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-
-        // Composite PK for NetControllerPool
-        builder.Entity<NetControllerPool>()
-            .HasKey(x => new { x.NetId, x.NetControllerId });
 
         // Unique: one callsign per controller
         builder.Entity<NetController>()

@@ -27,7 +27,6 @@ public class NetController
     // Navigation
     public ICollection<StandingAssignment> StandingAssignments { get; set; } = [];
     public ICollection<Unavailability> Unavailabilities { get; set; } = [];
-    public ICollection<NetControllerPool> PoolMemberships { get; set; } = [];
     public ICollection<SessionAssignment> SessionAssignments { get; set; } = [];
     public BandCoordinator? BandCoordinator { get; set; }
 

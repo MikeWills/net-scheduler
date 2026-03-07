@@ -30,16 +30,11 @@ public class VolunteerController : Controller
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Find nets this controller is in the pool for
-        var myNetIds = await _db.NetControllerPool
-            .Where(p => p.NetControllerId == user.NetController.Id && p.IsActive)
-            .Select(p => p.NetId).ToListAsync();
-
-        // Open sessions in those nets
+        // Open sessions across all active nets — any NCS can run any net
         var openSessions = await _db.NetSessions
             .Include(s => s.Net)
             .Include(s => s.Assignments.Where(a => a.Status != AssignmentStatus.Cancelled))
-            .Where(s => myNetIds.Contains(s.NetId) && s.Net.IsActive && s.SessionDate >= today)
+            .Where(s => s.Net.IsActive && s.SessionDate >= today)
             .OrderBy(s => s.SessionDate)
             .ToListAsync();
 

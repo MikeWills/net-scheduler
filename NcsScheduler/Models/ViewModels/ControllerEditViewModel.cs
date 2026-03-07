@@ -23,7 +23,4 @@ public class ControllerEditViewModel
     public string? Phone { get; set; }
 
     public bool IsActive { get; set; } = true;
-
-    [Display(Name = "Nets (pool membership)")]
-    public List<int> SelectedNetIds { get; set; } = [];
 }

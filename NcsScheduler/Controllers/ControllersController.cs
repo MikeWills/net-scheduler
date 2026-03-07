@@ -17,33 +17,23 @@ public class ControllersController : Controller
     public async Task<IActionResult> Index()
     {
         var controllers = await _db.NetControllers
-            .Include(nc => nc.PoolMemberships).ThenInclude(pm => pm.Net)
             .OrderBy(nc => nc.Callsign)
             .ToListAsync();
         return View(controllers);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create()
-    {
-        ViewBag.Nets = await _db.Nets.Where(n => n.IsActive).OrderBy(n => n.Name).ToListAsync();
-        return View(new ControllerEditViewModel());
-    }
+    public IActionResult Create() => View(new ControllerEditViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ControllerEditViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            ViewBag.Nets = await _db.Nets.Where(n => n.IsActive).OrderBy(n => n.Name).ToListAsync();
-            return View(model);
-        }
+        if (!ModelState.IsValid) return View(model);
 
         if (await _db.NetControllers.AnyAsync(nc => nc.Callsign == model.Callsign.ToUpper()))
         {
             ModelState.AddModelError("Callsign", "A controller with this callsign already exists.");
-            ViewBag.Nets = await _db.Nets.Where(n => n.IsActive).OrderBy(n => n.Name).ToListAsync();
             return View(model);
         }
 
@@ -59,10 +49,6 @@ public class ControllersController : Controller
         _db.NetControllers.Add(nc);
         await _db.SaveChangesAsync();
 
-        foreach (var netId in model.SelectedNetIds)
-            _db.NetControllerPool.Add(new NetControllerPool { NetId = netId, NetControllerId = nc.Id, IsActive = true });
-
-        await _db.SaveChangesAsync();
         TempData["Success"] = $"Controller {nc.Callsign} created.";
         return RedirectToAction("Index");
     }
@@ -70,12 +56,9 @@ public class ControllersController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var nc = await _db.NetControllers
-            .Include(nc => nc.PoolMemberships)
-            .FirstOrDefaultAsync(nc => nc.Id == id);
+        var nc = await _db.NetControllers.FirstOrDefaultAsync(nc => nc.Id == id);
         if (nc is null) return NotFound();
 
-        ViewBag.Nets = await _db.Nets.Where(n => n.IsActive).OrderBy(n => n.Name).ToListAsync();
         var vm = new ControllerEditViewModel
         {
             Id = nc.Id,
@@ -84,8 +67,7 @@ public class ControllersController : Controller
             Name = nc.Name,
             Email = nc.Email,
             Phone = nc.Phone,
-            IsActive = nc.IsActive,
-            SelectedNetIds = nc.PoolMemberships.Where(p => p.IsActive).Select(p => p.NetId).ToList()
+            IsActive = nc.IsActive
         };
         return View(vm);
     }
@@ -94,15 +76,9 @@ public class ControllersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(ControllerEditViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            ViewBag.Nets = await _db.Nets.Where(n => n.IsActive).OrderBy(n => n.Name).ToListAsync();
-            return View(model);
-        }
+        if (!ModelState.IsValid) return View(model);
 
-        var nc = await _db.NetControllers
-            .Include(nc => nc.PoolMemberships)
-            .FirstOrDefaultAsync(nc => nc.Id == model.Id);
+        var nc = await _db.NetControllers.FirstOrDefaultAsync(nc => nc.Id == model.Id);
         if (nc is null) return NotFound();
 
         nc.Callsign = model.Callsign.ToUpper();
@@ -111,15 +87,6 @@ public class ControllersController : Controller
         nc.Email = model.Email;
         nc.Phone = model.Phone;
         nc.IsActive = model.IsActive;
-
-        // Update pool memberships
-        foreach (var pm in nc.PoolMemberships) pm.IsActive = false;
-        foreach (var netId in model.SelectedNetIds)
-        {
-            var existing = nc.PoolMemberships.FirstOrDefault(p => p.NetId == netId);
-            if (existing is not null) existing.IsActive = true;
-            else _db.NetControllerPool.Add(new NetControllerPool { NetId = netId, NetControllerId = nc.Id, IsActive = true });
-        }
 
         await _db.SaveChangesAsync();
         TempData["Success"] = $"Controller {nc.Callsign} updated.";

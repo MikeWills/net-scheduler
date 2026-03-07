@@ -72,6 +72,18 @@ public static class DbSeeder
                         string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
+            else
+            {
+                // User already exists — reset their password to whatever is in config.
+                // This lets you recover access by updating SeedAdmin:Password and restarting.
+                var resetToken = await userManager.GeneratePasswordResetTokenAsync(existing);
+                var resetResult = await userManager.ResetPasswordAsync(existing, resetToken, adminPassword);
+                if (resetResult.Succeeded)
+                    logger.LogInformation("Reset SuperAdmin password for: {Email}", adminEmail);
+                else
+                    logger.LogError("Failed to reset SuperAdmin password: {Errors}",
+                        string.Join(", ", resetResult.Errors.Select(e => e.Description)));
+            }
         }
 
         // Seed the 3 core nets if none exist

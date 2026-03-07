@@ -41,5 +41,4 @@ public class Net
     public ICollection<NetSession> Sessions { get; set; } = [];
     public ICollection<StandingAssignment> StandingAssignments { get; set; } = [];
     public ICollection<NetCoordinatorAssignment> CoordinatorAssignments { get; set; } = [];
-    public ICollection<NetControllerPool> ControllerPool { get; set; } = [];
 }
