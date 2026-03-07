@@ -36,11 +36,14 @@ public static class DbSeeder
 
         if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
         {
+            // Look up both records independently — a previous crashed startup may have
+            // created one but not the other, so we must check each separately.
             var existing = await userManager.FindByEmailAsync(adminEmail);
-            if (existing is null)
+            var adminController = await db.NetControllers.FirstOrDefaultAsync(nc => nc.Callsign == "ADMIN");
+
+            if (adminController is null)
             {
-                // Create a NetController record for the admin
-                var adminController = new NetController
+                adminController = new NetController
                 {
                     Callsign = "ADMIN",
                     Name = "System Administrator",
@@ -49,7 +52,10 @@ public static class DbSeeder
                 };
                 db.NetControllers.Add(adminController);
                 await db.SaveChangesAsync();
+            }
 
+            if (existing is null)
+            {
                 var adminUser = new ApplicationUser
                 {
                     UserName = adminEmail,
@@ -83,6 +89,18 @@ public static class DbSeeder
                 else
                     logger.LogError("Failed to reset SuperAdmin password: {Errors}",
                         string.Join(", ", resetResult.Errors.Select(e => e.Description)));
+
+                // Ensure the controller and user are linked (may be missing from a partial first run)
+                if (adminController.UserId != existing.Id)
+                {
+                    adminController.UserId = existing.Id;
+                    await db.SaveChangesAsync();
+                }
+                if (existing.NetControllerId != adminController.Id)
+                {
+                    existing.NetControllerId = adminController.Id;
+                    await userManager.UpdateAsync(existing);
+                }
             }
         }
 
