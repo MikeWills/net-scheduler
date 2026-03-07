@@ -47,7 +47,6 @@
                                         <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Index">Manage Assignments</a></li>
                                         <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Calendar">Weekly Calendar</a></li>
                                         <li><a class="dropdown-item" asp-controller="Controllers" asp-action="Index">Net Controllers</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Invitation" asp-action="Send">Send Invite</a></li>
                                     </ul>
                                 </li>
                             }
@@ -58,6 +57,8 @@
                                     <a class="nav-link dropdown-toggle text-white" href="#" role="button"
                                        data-bs-toggle="dropdown">Admin</a>
                                     <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" asp-controller="Invitation" asp-action="Send">Send Invite</a></li>
+                                        <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" asp-controller="Nets" asp-action="Index">Manage Nets</a></li>
                                         <li><a class="dropdown-item" asp-controller="Coordinators" asp-action="Index">Band Coordinators</a></li>
                                         <li><hr class="dropdown-divider"></li>

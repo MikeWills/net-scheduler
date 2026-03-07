@@ -7,24 +7,27 @@ using NcsScheduler.Models.ViewModels;
 
 namespace NcsScheduler.Controllers;
 
-[Authorize(Policy = "CanManageControllers")]
 public class ControllersController : Controller
 {
     private readonly ApplicationDbContext _db;
 
     public ControllersController(ApplicationDbContext db) => _db = db;
 
+    [Authorize(Roles = "SuperAdmin,BandCoordinator")]
     public async Task<IActionResult> Index()
     {
         var controllers = await _db.NetControllers
-            .OrderBy(nc => nc.Callsign)
+            .OrderByDescending(nc => nc.IsActive)
+            .ThenBy(nc => nc.Callsign)
             .ToListAsync();
         return View(controllers);
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpGet]
     public IActionResult Create() => View(new ControllerEditViewModel());
 
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ControllerEditViewModel model)
@@ -53,6 +56,7 @@ public class ControllersController : Controller
         return RedirectToAction("Index");
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -72,6 +76,7 @@ public class ControllersController : Controller
         return View(vm);
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(ControllerEditViewModel model)
@@ -90,6 +95,21 @@ public class ControllersController : Controller
 
         await _db.SaveChangesAsync();
         TempData["Success"] = $"Controller {nc.Callsign} updated.";
+        return RedirectToAction("Index");
+    }
+
+    [Authorize(Policy = "SuperAdminOnly")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetActive(int id, bool active)
+    {
+        var nc = await _db.NetControllers.FindAsync(id);
+        if (nc is null) return NotFound();
+
+        nc.IsActive = active;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"Controller {nc.Callsign} {(active ? "activated" : "deactivated")}.";
         return RedirectToAction("Index");
     }
 }

@@ -36,8 +36,6 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("CanManageNets", p =>
         p.RequireRole("SuperAdmin", "BandCoordinator"));
-    options.AddPolicy("CanManageControllers", p =>
-        p.RequireRole("SuperAdmin", "BandCoordinator"));
     options.AddPolicy("SuperAdminOnly", p =>
         p.RequireRole("SuperAdmin"));
 });

@@ -4,18 +4,30 @@
 <div class="mt-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Net Controllers</h2>
-        <div>
-            <a asp-action="Create" class="btn btn-dark me-2">+ Add Controller</a>
-            @if (User.IsInRole("SuperAdmin") || User.IsInRole("BandCoordinator"))
-            {
+        @if (User.IsInRole("SuperAdmin"))
+        {
+            <div>
+                <a asp-action="Create" class="btn btn-dark me-2">+ Add Controller</a>
                 <a asp-controller="Invitation" asp-action="Send" class="btn btn-outline-dark">Send Invite</a>
-            }
-        </div>
+            </div>
+        }
     </div>
 
     <table class="table table-hover">
         <thead class="table-dark">
-            <tr><th>Callsign</th><th>Member #</th><th>Name</th><th>Email</th><th>Phone</th><th>Account</th><th></th></tr>
+            <tr>
+                <th>Callsign</th>
+                <th>Member #</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Account</th>
+                <th>Status</th>
+                @if (User.IsInRole("SuperAdmin"))
+                {
+                    <th></th>
+                }
+            </tr>
         </thead>
         <tbody>
             @foreach (var nc in Model)
@@ -37,8 +49,38 @@
                         }
                     </td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-dark">Edit</a>
+                        @if (nc.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Inactive</span>
+                        }
                     </td>
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <td class="text-nowrap">
+                            <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-dark me-1">Edit</a>
+                            @if (nc.IsActive)
+                            {
+                                <form asp-action="SetActive" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@nc.Id" />
+                                    <input type="hidden" name="active" value="false" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Deactivate @nc.Callsign?')">Deactivate</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="SetActive" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@nc.Id" />
+                                    <input type="hidden" name="active" value="true" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                </form>
+                            }
+                        </td>
+                    }
                 </tr>
             }
         </tbody>

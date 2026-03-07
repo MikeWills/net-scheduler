@@ -68,6 +68,14 @@ public class ScheduleController : Controller
             return View(new DashboardViewModel());
 
         var nc = user.NetController;
+
+        // Auto-generate an iCal token if one doesn't exist yet
+        if (string.IsNullOrEmpty(nc.IcalToken))
+        {
+            nc.IcalToken = Guid.NewGuid().ToString("N");
+            await _db.SaveChangesAsync();
+        }
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var end = today.AddDays(63); // 9 weeks — covers a full 2-month lookahead
 

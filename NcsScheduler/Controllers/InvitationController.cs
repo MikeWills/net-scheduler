@@ -22,7 +22,7 @@ public class InvitationController : Controller
         _emailService = emailService;
     }
 
-    [Authorize(Policy = "CanManageControllers")]
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpGet]
     public async Task<IActionResult> Send()
     {
@@ -33,7 +33,7 @@ public class InvitationController : Controller
         return View(new InviteViewModel());
     }
 
-    [Authorize(Policy = "CanManageControllers")]
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Send(InviteViewModel model)
