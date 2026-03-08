@@ -14,11 +14,13 @@ public class AdminController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IScheduleService _scheduleService;
 
-    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IScheduleService scheduleService)
     {
         _db = db;
         _userManager = userManager;
+        _scheduleService = scheduleService;
     }
 
     public async Task<IActionResult> Index()
@@ -207,6 +209,18 @@ public class AdminController : Controller
         }
         TempData["Success"] = "Standing assignment removed.";
         return RedirectToAction("StandingAssignments");
+    }
+
+    // ── Session Generation ────────────────────────────────────────────────────
+
+    /// <summary>Manually regenerate sessions for all active nets (8 weeks ahead).</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegenerateSessions()
+    {
+        await _scheduleService.GenerateAllSessionsAsync();
+        TempData["Success"] = "Sessions regenerated for all active nets.";
+        return RedirectToAction("Index");
     }
 
 }

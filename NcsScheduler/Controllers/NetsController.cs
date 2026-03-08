@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NcsScheduler.Data;
 using NcsScheduler.Models.Domain;
 using NcsScheduler.Models.ViewModels;
+using NcsScheduler.Services;
 
 namespace NcsScheduler.Controllers;
 
@@ -11,8 +12,13 @@ namespace NcsScheduler.Controllers;
 public class NetsController : Controller
 {
     private readonly ApplicationDbContext _db;
+    private readonly IScheduleService _scheduleService;
 
-    public NetsController(ApplicationDbContext db) => _db = db;
+    public NetsController(ApplicationDbContext db, IScheduleService scheduleService)
+    {
+        _db = db;
+        _scheduleService = scheduleService;
+    }
 
     public async Task<IActionResult> Index()
     {
@@ -52,6 +58,11 @@ public class NetsController : Controller
 
         _db.Nets.Add(net);
         await _db.SaveChangesAsync();
+
+        // Generate sessions immediately so the new net appears on the schedule
+        // without requiring an app restart.
+        await _scheduleService.GenerateSessionsAsync(net.Id);
+
         TempData["Success"] = $"Net '{net.Name}' created.";
         return RedirectToAction("Index");
     }
@@ -112,6 +123,10 @@ public class NetsController : Controller
         }
 
         await _db.SaveChangesAsync();
+
+        // Regenerate sessions in case the schedule days or UTC time changed.
+        await _scheduleService.GenerateSessionsAsync(net.Id);
+
         TempData["Success"] = "Net updated.";
         return RedirectToAction("Index");
     }
