@@ -185,7 +185,7 @@
                     {
                         <div class="table-responsive">
                             <table class="table table-bordered mb-0 align-middle">
-                                <thead class="table-dark">
+                                <thead class="sched-head">
                                     <tr>
                                         <th style="min-width:110px">Day</th>
                                         @foreach (var net in scheduledNets)
@@ -238,7 +238,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <td class="table-secondary text-center text-muted small net-col" data-band="@netBand">—</td>
+                                                    <td class="sched-empty text-center small net-col" data-band="@netBand">—</td>
                                                 }
                                             }
                                         </tr>
@@ -363,6 +363,25 @@
 </div>
 
 @section Scripts {
+<style>
+    /* Regular Schedule table header — dark in light mode, visible in dark mode */
+    .sched-head th {
+        background-color: #212529;
+        color: #fff;
+        border-color: #373b3e;
+    }
+    [data-bs-theme="dark"] .sched-head th {
+        background-color: var(--bs-secondary-bg);
+        color: var(--bs-body-color);
+        border-color: var(--bs-border-color);
+    }
+
+    /* "Not scheduled on this day" filler cells — theme-adaptive */
+    .sched-empty {
+        background-color: var(--bs-tertiary-bg) !important;
+        color: var(--bs-secondary-color) !important;
+    }
+</style>
 <script>
 (function () {
     // Band filter for the Regular Schedule table.

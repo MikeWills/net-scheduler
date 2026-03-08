@@ -45,6 +45,28 @@ public class ScheduleSlot
     public int NetId { get; set; }
     public DateOnly SessionDate { get; set; }
 
+    /// <summary>Eastern local time of the session — for display reference.</summary>
+    public TimeOnly EasternLocalTime { get; set; }
+
+    /// <summary>UTC time of the session — used to compute the broadcast sort key.</summary>
+    public TimeOnly ScheduledTimeUtc { get; set; }
+
+    /// <summary>
+    /// Display sort key using a "broadcast clock": overnight UTC sessions (before 10:00z)
+    /// are shifted by +24 h so they sort after afternoon/evening sessions.
+    /// Result for these nets: 10m (18:00z=18) → Early (03:00z=27) → 160m (04:00z=28) → Late (05:00z=29).
+    /// The 10:00z threshold is well clear of all overnight US nets (≤05:00z) and
+    /// all daytime nets (≥15:00z), and is DST-independent.
+    /// </summary>
+    public double BroadcastSortKey
+    {
+        get
+        {
+            double mins = ScheduledTimeUtc.ToTimeSpan().TotalMinutes;
+            return mins < 10 * 60 ? mins + 1440 : mins;   // 1440 = 24 h in minutes
+        }
+    }
+
     // Resolved assignment
     public string? Callsign { get; set; }
     public string? MemberNumber { get; set; }

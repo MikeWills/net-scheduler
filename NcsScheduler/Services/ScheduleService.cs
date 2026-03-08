@@ -234,7 +234,9 @@ public class ScheduleService : IScheduleService
         {
             SessionId = session.Id,
             NetId = session.NetId,
-            SessionDate = session.SessionDate
+            SessionDate = session.SessionDate,
+            ScheduledTimeUtc = session.ScheduledTimeUtc,
+            EasternLocalTime = ToEasternTime(session.SessionDate, session.ScheduledTimeUtc)
         };
 
         // Check for explicit assignment

@@ -21,12 +21,6 @@
         return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, easternZone));
     }
 
-    TimeOnly EasternTime(DateOnly utcDate, TimeOnly utcTime)
-    {
-        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
-        return TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, easternZone));
-    }
-
     var allSlots = Model.Weeks
         .SelectMany(w => w.Slots.Values)
         .GroupBy(s => netLookup.TryGetValue(s.NetId, out var net)
@@ -54,11 +48,11 @@
     {
         @foreach (var day in allSlots)
         {
+            // Broadcast-clock sort: daytime nets first, then evening, then post-midnight.
+            // Overnight UTC sessions (< 10:00z) get +24 h added so they sort after
+            // afternoon/evening sessions. DST-independent.
             var daySlots = day
-                .OrderBy(s => netLookup.TryGetValue(s.NetId, out var n)
-                    ? EasternTime(s.SessionDate, n.ScheduledTimeUtc)
-                    : TimeOnly.MinValue)
-                .ThenBy(s => s.SessionDate)
+                .OrderBy(s => s.BroadcastSortKey)
                 .ToList();
             <div class="day-group mb-4">
                 <div class="day-header px-3 py-2 mb-0 rounded-top">
