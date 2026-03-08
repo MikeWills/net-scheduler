@@ -139,7 +139,12 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('select.nc-select').forEach(function (el) {
-                var ts = new TomSelect(el, { create: false });
+                var ts = new TomSelect(el, {
+                    create: false,
+                    // Render the dropdown as a direct child of <body> so it is never
+                    // clipped by overflow:hidden on ancestor elements (e.g. table-responsive).
+                    dropdownParent: 'body'
+                });
                 // Propagate flex-grow to Tom Select's wrapper (needed inside flex table cells)
                 if (el.classList.contains('flex-grow-1')) {
                     ts.wrapper.classList.add('flex-grow-1');

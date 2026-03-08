@@ -18,6 +18,12 @@
     // Nets that have schedule rules (excludes ad-hoc holiday net)
     var scheduledNets = nets.Where(n => rules.Any(r => r.NetId == n.Id)).ToList();
 
+    // Distinct bands for the Regular Schedule filter
+    var distinctBands = scheduledNets
+        .Select(n => string.IsNullOrWhiteSpace(n.Band) ? "Other" : n.Band)
+        .Distinct().OrderBy(b => b).ToList();
+    bool showBandFilter = distinctBands.Count > 1;
+
     // Quick lookups
     var standingMap = standings
         .GroupBy(sa => (sa.NetId, sa.DayOfWeek))
@@ -147,11 +153,26 @@
             @* ── Section 1: Regular Schedule ──────────────────────────────────── *@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-bottom">
-                    <h5 class="mb-0">Regular Schedule</h5>
-                    <small class="text-muted">
-                        Pick a controller for each day — they run that net every week until you change it or assign a sub below.
-                        Choose <em>— Unassigned —</em> to clear a slot.
-                    </small>
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h5 class="mb-0">Regular Schedule</h5>
+                            <small class="text-muted">
+                                Pick a controller for each day — they run that net every week until you change it or assign a sub below.
+                                Choose <em>— Unassigned —</em> to clear a slot.
+                            </small>
+                        </div>
+                        @if (showBandFilter)
+                        {
+                            <div class="d-flex flex-wrap gap-1 align-items-center" id="band-filter-btns">
+                                <small class="text-muted me-1">Filter:</small>
+                                <button type="button" class="btn btn-sm btn-secondary active" data-band-filter="all">All</button>
+                                @foreach (var band in distinctBands)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-band-filter="@band">@band</button>
+                                }
+                            </div>
+                        }
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     @if (!scheduledNets.Any())
@@ -169,7 +190,9 @@
                                         <th style="min-width:110px">Day</th>
                                         @foreach (var net in scheduledNets)
                                         {
-                                            <th class="text-center" style="min-width:240px">
+                                            <th class="text-center net-col"
+                                                data-band="@(string.IsNullOrWhiteSpace(net.Band) ? "Other" : net.Band)"
+                                                style="min-width:240px">
                                                 @net.Name
                                                 <br /><small class="fw-normal opacity-75">@net.ScheduledTimeUtc.ToString("HH:mm")z</small>
                                             </th>
@@ -185,10 +208,11 @@
                                             {
                                                 var hasRule = ruleSet.Contains((net.Id, day));
                                                 standingMap.TryGetValue((net.Id, day), out var current);
+                                                var netBand = string.IsNullOrWhiteSpace(net.Band) ? "Other" : net.Band;
 
                                                 if (hasRule)
                                                 {
-                                                    <td class="p-1">
+                                                    <td class="p-1 net-col" data-band="@netBand">
                                                         <form asp-action="SetStanding" method="post"
                                                               class="d-flex gap-1 align-items-center px-1">
                                                             @Html.AntiForgeryToken()
@@ -214,7 +238,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <td class="table-secondary text-center text-muted small">—</td>
+                                                    <td class="table-secondary text-center text-muted small net-col" data-band="@netBand">—</td>
                                                 }
                                             }
                                         </tr>
@@ -337,3 +361,32 @@
 
     </div>@* /row *@
 </div>
+
+@section Scripts {
+<script>
+(function () {
+    // Band filter for the Regular Schedule table.
+    // Clicking a band button shows only .net-col cells whose data-band matches;
+    // clicking "All" shows every column again.
+    var filterBtns = document.querySelectorAll('#band-filter-btns [data-band-filter]');
+    if (!filterBtns.length) return;
+
+    filterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            // Update active button state
+            filterBtns.forEach(function (b) {
+                b.classList.remove('active', 'btn-secondary');
+                b.classList.add('btn-outline-secondary');
+            });
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('active', 'btn-secondary');
+
+            var filter = this.dataset.bandFilter;
+            document.querySelectorAll('.net-col').forEach(function (col) {
+                col.style.display = (filter === 'all' || col.dataset.band === filter) ? '' : 'none';
+            });
+        });
+    });
+})();
+</script>
+}

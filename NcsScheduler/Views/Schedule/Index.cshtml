@@ -21,6 +21,12 @@
         return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, easternZone));
     }
 
+    TimeOnly EasternTime(DateOnly utcDate, TimeOnly utcTime)
+    {
+        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        return TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, easternZone));
+    }
+
     var allSlots = Model.Weeks
         .SelectMany(w => w.Slots.Values)
         .GroupBy(s => netLookup.TryGetValue(s.NetId, out var net)
@@ -49,7 +55,9 @@
         @foreach (var day in allSlots)
         {
             var daySlots = day
-                .OrderBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue)
+                .OrderBy(s => netLookup.TryGetValue(s.NetId, out var n)
+                    ? EasternTime(s.SessionDate, n.ScheduledTimeUtc)
+                    : TimeOnly.MinValue)
                 .ThenBy(s => s.SessionDate)
                 .ToList();
             <div class="day-group mb-4">

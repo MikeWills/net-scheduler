@@ -15,6 +15,17 @@
 </div>
 
 <div class="row g-3 mt-1">
+    <!-- Quick Actions -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">Quick Actions</div>
+            <div class="card-body py-2">
+                <a asp-controller="Unavailability" asp-action="Create" class="btn btn-outline-secondary me-2">Mark Unavailable</a>
+                <a asp-controller="Schedule" asp-action="Index" class="btn btn-outline-dark">View Full Schedule</a>
+            </div>
+        </div>
+    </div>
+
     <!-- Open Slots I Can Cover -->
     <div class="col-md-6">
         <div class="card h-100">
@@ -125,16 +136,6 @@
         </div>
     </div>
 
-    <!-- Quick link to mark unavailability -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">Quick Actions</div>
-            <div class="card-body">
-                <a asp-controller="Unavailability" asp-action="Create" class="btn btn-outline-secondary me-2">Mark Unavailable</a>
-                <a asp-controller="Schedule" asp-action="Index" class="btn btn-outline-dark">View Full Schedule</a>
-            </div>
-        </div>
-    </div>
 </div>
 
 @section Scripts {

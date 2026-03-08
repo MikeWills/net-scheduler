@@ -35,6 +35,12 @@ public class ScheduleService : IScheduleService
         return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
     }
 
+    private static TimeOnly ToEasternTime(DateOnly utcDate, TimeOnly utcTime)
+    {
+        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        return TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
+    }
+
     public async Task GenerateAllSessionsAsync(int weeksAhead = 8)
     {
         var nets = await _db.Nets
@@ -153,11 +159,13 @@ public class ScheduleService : IScheduleService
 
         var nets = await _db.Nets
             .Where(n => n.IsActive)
-            .OrderBy(n => n.Id)
             .ToListAsync();
 
-        // Hide nets that are outside their configured season window
-        nets = nets.Where(n => n.IsInSeasonForDate(today)).ToList();
+        // Hide nets outside their configured season window, then sort by Eastern local time
+        nets = nets
+            .Where(n => n.IsInSeasonForDate(today))
+            .OrderBy(n => ToEasternTime(today, n.ScheduledTimeUtc))
+            .ToList();
         var inSeasonNetIds = nets.Select(n => n.Id).ToHashSet();
 
         var sessions = await _db.NetSessions
