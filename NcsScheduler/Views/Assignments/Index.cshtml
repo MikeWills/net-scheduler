@@ -72,7 +72,7 @@
                         </div>
                         <div class="col-sm-8">
                             <label class="form-label fw-semibold">Substitute</label>
-                            <select name="controllerId" class="form-select" required>
+                            <select name="controllerId" class="form-select nc-select" required>
                                 <option value="0">— Select controller —</option>
                                 @foreach (var nc in controllers)
                                 {
@@ -194,7 +194,7 @@
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="netId" value="@net.Id" />
                                                             <input type="hidden" name="dayOfWeek" value="@((int)day)" />
-                                                            <select name="netControllerId" class="form-select form-select-sm flex-grow-1">
+                                                            <select name="netControllerId" class="form-select form-select-sm flex-grow-1 nc-select">
                                                                 <option value="0">— Unassigned —</option>
                                                                 @foreach (var nc in controllers)
                                                                 {
@@ -315,7 +315,7 @@
                                                 <form asp-action="Assign" method="post" class="d-flex gap-1 align-items-center">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="sessionId" value="@item.Session.Id" />
-                                                    <select name="controllerId" class="form-select form-select-sm flex-grow-1">
+                                                    <select name="controllerId" class="form-select form-select-sm flex-grow-1 nc-select">
                                                         <option value="0">— Pick a sub —</option>
                                                         @foreach (var nc in controllers)
                                                         {

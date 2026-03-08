@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/NcsScheduler.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" />
 </head>
 <body>
     <header>
@@ -24,25 +25,25 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-white" asp-controller="Schedule" asp-action="Index">Schedule</a>
+                            <a class="nav-link text-white" asp-controller="Schedule" asp-action="Index">Net Schedule</a>
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-white" asp-controller="Schedule" asp-action="Dashboard">Dashboard</a>
+                                <a class="nav-link text-white" asp-controller="Schedule" asp-action="Dashboard">NCS Dashboard</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-white" asp-controller="Unavailability" asp-action="Index">My Unavailability</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-white" asp-controller="Volunteer" asp-action="Index">Open Slots</a>
+                                <a class="nav-link text-white" asp-controller="Volunteer" asp-action="Index">Open Nets</a>
                             </li>
 
                             @if (User.IsInRole("BandCoordinator") || User.IsInRole("SuperAdmin"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle text-white" href="#" role="button"
-                                       data-bs-toggle="dropdown">Coordinator</a>
+                                       data-bs-toggle="dropdown">Band Coordinator</a>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Index">Manage Assignments</a></li>
                                         <li><a class="dropdown-item" asp-controller="Assignments" asp-action="Calendar">Weekly Calendar</a></li>
@@ -55,10 +56,8 @@
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle text-white" href="#" role="button"
-                                       data-bs-toggle="dropdown">Admin</a>
+                                       data-bs-toggle="dropdown">Directors/Admin</a>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" asp-controller="Invitation" asp-action="Send">Send Invite</a></li>
-                                        <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" asp-controller="Nets" asp-action="Index">Manage Nets</a></li>
                                         <li><a class="dropdown-item" asp-controller="Coordinators" asp-action="Index">Band Coordinators</a></li>
                                         <li><hr class="dropdown-divider"></li>
@@ -125,6 +124,18 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('select.nc-select').forEach(function (el) {
+                var ts = new TomSelect(el, { create: false });
+                // Propagate flex-grow to Tom Select's wrapper (needed inside flex table cells)
+                if (el.classList.contains('flex-grow-1')) {
+                    ts.wrapper.classList.add('flex-grow-1');
+                }
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

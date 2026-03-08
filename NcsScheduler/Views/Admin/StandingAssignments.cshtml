@@ -76,7 +76,7 @@
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="netId" value="@net.Id" />
                                                     <input type="hidden" name="dayOfWeek" value="@((int)day)" />
-                                                    <select name="netControllerId" class="form-select form-select-sm flex-grow-1">
+                                                    <select name="netControllerId" class="form-select form-select-sm flex-grow-1 nc-select">
                                                         <option value="0">— Unassigned —</option>
                                                         @foreach (var nc in controllers)
                                                         {

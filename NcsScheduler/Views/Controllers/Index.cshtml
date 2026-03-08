@@ -6,10 +6,7 @@
         <h2>Net Controllers</h2>
         @if (User.IsInRole("SuperAdmin"))
         {
-            <div>
-                <a asp-action="Create" class="btn btn-dark me-2">+ Add Controller</a>
-                <a asp-controller="Invitation" asp-action="Send" class="btn btn-outline-dark">Send Invite</a>
-            </div>
+            <a asp-action="Create" class="btn btn-dark">+ Add Controller</a>
         }
     </div>
 
@@ -36,12 +33,21 @@
                     <td class="fw-bold font-monospace">@nc.Callsign</td>
                     <td>@nc.MemberNumber</td>
                     <td>@nc.Name</td>
-                    <td><a href="mailto:@nc.Email">@nc.Email</a></td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(nc.Email))
+                        {
+                            <a href="mailto:@nc.Email">@nc.Email</a>
+                        }
+                    </td>
                     <td>@nc.Phone</td>
                     <td>
                         @if (nc.UserId is not null)
                         {
-                            <span class="badge bg-success">Active</span>
+                            <span class="badge bg-success">Has account</span>
+                        }
+                        else if (string.IsNullOrEmpty(nc.Email))
+                        {
+                            <span class="badge bg-warning text-dark" title="Add an email address to send an invite">No email</span>
                         }
                         else
                         {
@@ -62,6 +68,14 @@
                     {
                         <td class="text-nowrap">
                             <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-dark me-1">Edit</a>
+                            @if (nc.UserId is null && nc.IsActive && !string.IsNullOrEmpty(nc.Email))
+                            {
+                                <form asp-controller="Invitation" asp-action="SendToController" method="post" class="d-inline me-1">
+                                    <input type="hidden" name="id" value="@nc.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary"
+                                            onclick="return confirm('Send invite to @nc.Email?')">Send Invite</button>
+                                </form>
+                            }
                             @if (nc.IsActive)
                             {
                                 <form asp-action="SetActive" method="post" class="d-inline">

@@ -14,7 +14,11 @@
                 <span class="ms-2 badge bg-secondary">Compared to previous week</span>
             </span>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">&#8592; Manage Assignments</a>
+        <div>
+            <a href="https://www.omiss.net/membership/admin/" target="_blank" class="btn btn-outline-secondary btn-sm">OMISS Admin Site</a>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Manage NCS Assignments</a>
+
+        </div>
     </div>
 
     @if (!Model.Rows.Any())
@@ -130,42 +134,64 @@
 </div>
 
 @section Scripts {
-<style>
-    .bc-calendar { font-size: .9rem; }
+    <style>
+        .bc-calendar {
+            font-size: .9rem;
+        }
 
-    .net-col   { min-width: 140px; width: 140px; }
-    .day-col   { min-width: 120px; }
-    .net-name-cell { vertical-align: middle; }
+        .net-col {
+            min-width: 140px;
+            width: 140px;
+        }
 
-    /* Days where the net does not run */
-    .cell-inactive { background-color: #f0f0f0; }
+        .day-col {
+            min-width: 120px;
+        }
 
-    /* Open slot */
-    .cell-open { background-color: #f8d7da; }
+        .net-name-cell {
+            vertical-align: middle;
+        }
 
-    /* Changed from last week */
-    .cell-changed { background-color: #fff3cd; }
+        /* Days where the net does not run */
+        .cell-inactive {
+            background-color: #f0f0f0;
+        }
 
-    /* "was: …" annotation */
-    .change-note {
-        font-size: .75rem;
-        color: #6c757d;
-        font-style: italic;
-    }
+        /* Open slot */
+        .cell-open {
+            background-color: #f8d7da;
+        }
 
-    /* Legend swatches */
-    .legend-swatch {
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        border-radius: 3px;
-        flex-shrink: 0;
-    }
+        /* Changed from last week */
+        .cell-changed {
+            background-color: #fff3cd;
+        }
 
-    /* Keep table cells from getting too cramped on small screens */
-    @@media (max-width: 768px) {
-        .bc-calendar { font-size: .8rem; }
-        .day-col     { min-width: 90px; }
-    }
-</style>
+        /* "was: …" annotation */
+        .change-note {
+            font-size: .75rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        /* Legend swatches */
+        .legend-swatch {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        /* Keep table cells from getting too cramped on small screens */
+        @@media (max-width: 768px) {
+            .bc-calendar {
+                font-size: .8rem;
+            }
+
+            .day-col {
+                min-width: 90px;
+            }
+        }
+    </style>
 }

@@ -22,52 +22,47 @@ public class InvitationController : Controller
         _emailService = emailService;
     }
 
-    [Authorize(Policy = "SuperAdminOnly")]
-    [HttpGet]
-    public async Task<IActionResult> Send()
-    {
-        ViewBag.Controllers = await _db.NetControllers
-            .Where(nc => nc.UserId == null && nc.IsActive)
-            .OrderBy(nc => nc.Callsign)
-            .ToListAsync();
-        return View(new InviteViewModel());
-    }
-
+    /// <summary>
+    /// Sends an invite to the NCS using the email address already on their record.
+    /// Called inline from the Net Controllers list.
+    /// </summary>
     [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Send(InviteViewModel model)
+    public async Task<IActionResult> SendToController(int id)
     {
-        if (!ModelState.IsValid)
+        var nc = await _db.NetControllers.FindAsync(id);
+        if (nc is null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(nc.Email))
         {
-            ViewBag.Controllers = await _db.NetControllers
-                .Where(nc => nc.UserId == null && nc.IsActive)
-                .OrderBy(nc => nc.Callsign).ToListAsync();
-            return View(model);
+            TempData["Error"] = $"No email on file for {nc.Callsign}. Edit the controller record first.";
+            return RedirectToAction("Index", "Controllers");
         }
 
-        var nc = await _db.NetControllers.FindAsync(model.NetControllerId);
-        if (nc is null) { ModelState.AddModelError("", "Controller not found."); return View(model); }
+        if (nc.UserId is not null)
+        {
+            TempData["Error"] = $"{nc.Callsign} already has an account.";
+            return RedirectToAction("Index", "Controllers");
+        }
 
         var token = Guid.NewGuid().ToString("N");
         var invite = new Invitation
         {
-            Email = model.Email,
+            Email = nc.Email,
             Token = token,
             InvitedByUserId = _userManager.GetUserId(User)!,
             NetControllerId = nc.Id,
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         };
-        // Update email on controller record too
-        nc.Email = model.Email;
         _db.Invitations.Add(invite);
         await _db.SaveChangesAsync();
 
         var inviteUrl = Url.Action("Accept", "Invitation", new { token }, Request.Scheme)!;
-        await _emailService.SendInviteAsync(model.Email, nc.Name, inviteUrl);
+        await _emailService.SendInviteAsync(nc.Email, nc.Name, inviteUrl);
 
-        TempData["Success"] = $"Invitation sent to {model.Email}.";
-        return RedirectToAction("Send");
+        TempData["Success"] = $"Invitation sent to {nc.Email}.";
+        return RedirectToAction("Index", "Controllers");
     }
 
     [HttpGet]
