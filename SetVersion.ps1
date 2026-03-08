@@ -4,10 +4,11 @@ $csprojPath = "$PSScriptRoot\NcsScheduler\NcsScheduler.csproj"
 $xml = [xml](Get-Content $csprojPath)
 
 $ns = $xml.DocumentElement.NamespaceURI
-$pg = $xml.Project.PropertyGroup | Where-Object { $_.Version -ne $null } | Select-Object -First 1
+$allGroups = @($xml.Project.PropertyGroup)
+$pg = $allGroups | Where-Object { $_.Version -ne $null } | Select-Object -First 1
 
-if ($pg -eq $null) {
-    $pg = $xml.Project.PropertyGroup[0]
+if ($null -eq $pg) {
+    $pg = $allGroups[0]
 }
 
 # Read current release number and increment
