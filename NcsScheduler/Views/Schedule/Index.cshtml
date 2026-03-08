@@ -213,6 +213,27 @@
             el.textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         }
     });
+
+    // Relabel day-group headers with the LOCAL calendar date of each group's sessions.
+    // Sessions are grouped server-side by UTC date, but nets running at 03:00–05:00z fall
+    // on the previous local calendar day for US users. On DST transition days this creates
+    // an off-by-one where today's UTC group shows yesterday's local time and tomorrow's
+    // UTC group shows tonight's session. Reading the first slot's UTC timestamp and
+    // converting to local date fixes both the label and the DST edge case.
+    document.querySelectorAll('.day-group').forEach(function (group) {
+        var firstSlot = group.querySelector('[data-utc]');
+        if (!firstSlot) return;
+        var d = new Date(firstSlot.dataset.utc);
+        if (isNaN(d)) return;
+        var headerShort = group.querySelector('.day-header-text .d-md-none');
+        var headerFull  = group.querySelector('.day-header-text .d-none.d-md-inline');
+        if (headerShort) {
+            headerShort.textContent = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        if (headerFull) {
+            headerFull.textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        }
+    });
 })();
 </script>
 }
