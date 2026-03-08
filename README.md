@@ -16,19 +16,23 @@ Built for OMISS 80m nets but designed to be configurable for any club running mu
 
 ### Net Controllers (logged-in)
 - Personal dashboard showing upcoming sessions and open slots in your nets
+- iCal calendar feed — subscribe in any calendar app; token auto-generated on first dashboard visit
 - Self-service unavailability reporting (date ranges, per-net or all nets)
 - One-click volunteer sign-up for open slots
+- Password reset via email ("Forgot your password?" link on login page)
 
 ### Band Coordinators
 - Manage assignments: assign subs, confirm volunteers, or manually open any date
 - "Assign Sub for Any Date" — create a session on any date even outside normal schedule rules
 - Weekly calendar view (Sunday–Saturday) formatted for copy-paste, with change highlighting vs. the prior week
+- Read-only view of the Net Controllers list
 - View limited to nets under the coordinator's management
 
 ### Super Admins
 - Full user, role, and net management
+- Net controller list — add, edit, activate/deactivate controllers
+- Send account invitations directly from the Net Controllers list (uses email on file; tokenized 7-day link)
 - Standing assignments — set the default NCS per net per day of week with effective date ranges
-- Invite net controllers via email (tokenized invite link)
 - Band Coordinator promotion/demotion
 
 ---
@@ -37,18 +41,18 @@ Built for OMISS 80m nets but designed to be configurable for any club running mu
 
 | Layer | Technology |
 |---|---|
-| Framework | ASP.NET Core MVC (.NET 10) |
-| Database | SQLite via Entity Framework Core 9 |
+| Framework | ASP.NET Core MVC (.NET 8) |
+| Database | SQLite via Entity Framework Core 8 |
 | Auth | ASP.NET Core Identity |
 | Email | MailKit (SMTP) |
-| Frontend | Bootstrap 5, jQuery |
+| Frontend | Bootstrap 5, jQuery, Tom Select (searchable dropdowns) |
 | Session generation | `IHostedService` background worker (runs on startup + every 24 h) |
 
 ---
 
 ## Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - Git
 
 No other infrastructure required — SQLite is file-based and bundled with the app.
@@ -120,10 +124,10 @@ After the app starts for the first time:
 | Step | Where |
 |---|---|
 | 1. Log in as SuperAdmin | Use the credentials from `SeedAdmin` in `appsettings.Development.json` |
-| 2. Add net controllers | Admin → Net Controllers |
-| 3. Set standing assignments | Admin → Standing Assignments |
-| 4. Promote a Band Coordinator | Admin → Manage Users → Grant Coordinator, then Admin → Band Coordinators to assign nets |
-| 5. Send invites | Coordinator → Send Invite (or Admin → Send Invitation) |
+| 2. Add net controllers | Coordinator → Net Controllers → + Add Controller |
+| 3. Send account invitations | Coordinator → Net Controllers → Send Invite (per row) |
+| 4. Set standing assignments | Admin → Standing Assignments |
+| 5. Promote a Band Coordinator | Admin → Manage Users → Grant Coordinator, then Admin → Band Coordinators to assign nets |
 | 6. Review the current week | Coordinator → Weekly Calendar |
 
 ### Seeded data on first boot
@@ -142,8 +146,8 @@ After the app starts for the first time:
 
 | Role | What they can do |
 |---|---|
-| `SuperAdmin` | Everything — users, roles, nets, standing assignments |
-| `BandCoordinator` | Assignments, weekly calendar, controller list for their assigned nets |
+| `SuperAdmin` | Everything — users, roles, nets, standing assignments, add/edit/activate controllers, send invites |
+| `BandCoordinator` | Assignments, weekly calendar, read-only Net Controllers list |
 | `NetController` | Dashboard, unavailability, volunteer sign-up |
 | *(anonymous)* | Public schedule only |
 
@@ -214,6 +218,12 @@ ASPNETCORE_ENVIRONMENT=Production
 
 ASP.NET Core maps `__` (double-underscore) to `:` in config keys, so `App__BaseUrl` becomes `App:BaseUrl` and `Email__Password` becomes `Email:Password`.
 
+> **systemd quoting:** Values containing spaces (like `Data Source=...`) must have the entire `KEY=VALUE` pair wrapped in outer quotes in the service file:
+> ```ini
+> Environment="ConnectionStrings__DefaultConnection=Data Source=/opt/ncsscheduler/ncsscheduler.db"
+> ```
+> Using inner quotes (`Environment=KEY="value with spaces"`) passes the literal quote characters to the app and causes a startup crash.
+
 ---
 
 ## Project Structure
@@ -221,12 +231,13 @@ ASP.NET Core maps `__` (double-underscore) to `:` in config keys, so `App__BaseU
 ```
 NcsScheduler/
 ├── Controllers/
-│   ├── AccountController.cs          # Login, logout, profile
+│   ├── AccountController.cs          # Login, logout, profile, forgot/reset password
 │   ├── AdminController.cs            # Users, roles, standing assignments
 │   ├── AssignmentsController.cs      # Coordinator assignment management + calendar
-│   ├── ControllersController.cs      # Net controller CRUD
+│   ├── ControllersController.cs      # Net controller CRUD + activate/deactivate
 │   ├── CoordinatorsController.cs     # Band coordinator management
-│   ├── InvitationController.cs       # Send/accept email invites
+│   ├── IcalController.cs             # Personal iCal calendar feed (token-authenticated)
+│   ├── InvitationController.cs       # Send invite (inline) + accept invite flow
 │   ├── NetsController.cs             # Net CRUD
 │   ├── ScheduleController.cs         # Public schedule + personal dashboard
 │   ├── UnavailabilityController.cs   # Self-service unavailability
