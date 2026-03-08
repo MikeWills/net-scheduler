@@ -13,59 +13,105 @@
     }
     else
     {
-        <table class="table table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Date(s)</th>
-                    <th>Duration</th>
-                    <th>Net</th>
-                    <th>Reason</th>
-                    <th>Marked</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var u in Model)
-                {
-                    var days = u.StartDate.DayNumber - u.EndDate.DayNumber; // negative, so use abs
-                    var span = u.EndDate.DayNumber - u.StartDate.DayNumber + 1;
-                    <tr>
-                        <td class="fw-bold">
-                            @if (u.StartDate == u.EndDate)
-                            {
-                                @u.StartDate.ToString("ddd, MMMM d, yyyy")
-                            }
-                            else
-                            {
-                                @u.StartDate.ToString("ddd, MMM d")
-                                <span class="text-muted mx-1">–</span>
-                                @u.EndDate.ToString("ddd, MMM d, yyyy")
-                            }
-                        </td>
-                        <td class="text-muted small">
-                            @if (span == 1)
-                            {
-                                <span>1 day</span>
-                            }
-                            else
-                            {
-                                <span>@span days</span>
-                            }
-                        </td>
-                        <td>@(u.Net?.Name ?? "All nets")</td>
-                        <td>@(u.Reason ?? "—")</td>
-                        <td class="text-muted small">@u.MarkedAt.ToString("M/d/yy")</td>
-                        <td class="text-nowrap">
-                            <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
-                            <form asp-action="Delete" method="post" onsubmit="return confirm('Remove this unavailability?')" class="d-inline">
+        @* Mobile: card list (hidden on md+) *@
+        <div class="d-md-none">
+            @foreach (var u in Model)
+            {
+                var span = u.EndDate.DayNumber - u.StartDate.DayNumber + 1;
+                <div class="border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1" style="min-width:0">
+                            <div class="fw-bold">
+                                @if (u.StartDate == u.EndDate)
+                                {
+                                    @u.StartDate.ToString("ddd, MMMM d, yyyy")
+                                }
+                                else
+                                {
+                                    @u.StartDate.ToString("ddd, MMM d")
+                                    <span class="text-muted mx-1">–</span>
+                                    @u.EndDate.ToString("ddd, MMM d, yyyy")
+                                }
+                            </div>
+                            <div class="small text-muted mt-1">
+                                @(span == 1 ? "1 day" : $"{span} days")
+                                <span class="mx-1">·</span>
+                                @(u.Net?.Name ?? "All nets")
+                                @if (!string.IsNullOrEmpty(u.Reason))
+                                {
+                                    <span class="mx-1">·</span>
+                                    @u.Reason
+                                }
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1 flex-shrink-0">
+                            <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <form asp-action="Delete" method="post" onsubmit="return confirm('Remove this unavailability?')">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@u.Id" />
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
                             </form>
-                        </td>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Desktop: table (hidden below md) *@
+        <div class="d-none d-md-block table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date(s)</th>
+                        <th>Duration</th>
+                        <th>Net</th>
+                        <th>Reason</th>
+                        <th>Marked</th>
+                        <th></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model)
+                    {
+                        var span = u.EndDate.DayNumber - u.StartDate.DayNumber + 1;
+                        <tr>
+                            <td class="fw-bold">
+                                @if (u.StartDate == u.EndDate)
+                                {
+                                    @u.StartDate.ToString("ddd, MMMM d, yyyy")
+                                }
+                                else
+                                {
+                                    @u.StartDate.ToString("ddd, MMM d")
+                                    <span class="text-muted mx-1">–</span>
+                                    @u.EndDate.ToString("ddd, MMM d, yyyy")
+                                }
+                            </td>
+                            <td class="text-muted small">
+                                @if (span == 1)
+                                {
+                                    <span>1 day</span>
+                                }
+                                else
+                                {
+                                    <span>@span days</span>
+                                }
+                            </td>
+                            <td>@(u.Net?.Name ?? "All nets")</td>
+                            <td>@(u.Reason ?? "—")</td>
+                            <td class="text-muted small">@u.MarkedAt.ToString("M/d/yy")</td>
+                            <td class="text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                                <form asp-action="Delete" method="post" onsubmit="return confirm('Remove this unavailability?')" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 </div>
