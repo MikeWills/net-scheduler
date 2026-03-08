@@ -105,6 +105,16 @@ body {
   --bs-table-border-color: var(--bs-border-color);
 }
 
+/* table-dark heads — in dark mode the default #212529 bg blends into the page;
+   lift it to a visible mid-tone instead */
+[data-bs-theme="dark"] .table-dark {
+  --bs-table-color: #fff;
+  --bs-table-bg: var(--bs-secondary-bg);
+  --bs-table-border-color: var(--bs-border-color);
+  --bs-table-striped-bg: var(--bs-tertiary-bg);
+  --bs-table-hover-bg: var(--bs-tertiary-bg);
+}
+
 /* Unstyled <thead> rows (Dashboard) */
 [data-bs-theme="dark"] thead:not([class]) tr {
   background-color: var(--bs-tertiary-bg);
