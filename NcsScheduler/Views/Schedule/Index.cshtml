@@ -36,82 +36,148 @@
     {
         @foreach (var day in allSlots)
         {
+            var daySlots = day
+                .OrderBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue)
+                .ToList();
             <div class="day-group mb-4">
                 <div class="day-header px-3 py-2 mb-0 rounded-top">
-                    <strong class="day-header-text">@day.Key.ToString("dddd, MMMM d, yyyy")</strong>
+                    <strong class="day-header-text">
+                        <span class="d-md-none">@day.Key.ToString("ddd, MMM d, yyyy")</span>
+                        <span class="d-none d-md-inline">@day.Key.ToString("dddd, MMMM d, yyyy")</span>
+                    </strong>
                 </div>
-                <table class="table table-sm table-hover mb-0 border rounded-bottom">
-                    <thead class="table-light border-bottom">
-                        <tr>
-                            <th style="min-width:160px">Net</th>
-                            <th style="min-width:140px">NCS</th>
-                            <th class="text-nowrap">UTC</th>
-                            <th class="text-nowrap">Local</th>
-                            <th>Frequency</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var slot in day.OrderBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue))
-                        {
-                            var net = netLookup.GetValueOrDefault(slot.NetId);
-                            var utcIso = $"{slot.SessionDate:yyyy-MM-dd}T{net?.ScheduledTimeUtc:HH\\:mm\\:ss}Z";
-                            <tr class="@slot.CssClass" data-utc="@utcIso">
-                                <td>
-                                    <span class="fw-semibold">@(net?.NetName ?? "—")</span>
-                                </td>
-                                <td>
+
+                @* Mobile: card list (hidden on md+) *@
+                <div class="d-md-none schedule-card-list border rounded-bottom">
+                    @foreach (var slot in daySlots)
+                    {
+                        var net = netLookup.GetValueOrDefault(slot.NetId);
+                        var utcIso = $"{slot.SessionDate:yyyy-MM-dd}T{net?.ScheduledTimeUtc:HH\\:mm\\:ss}Z";
+                        <div class="schedule-card @slot.CssClass px-3 py-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div class="flex-grow-1" style="min-width:0">
+                                    <div class="fw-semibold">@(net?.NetName ?? "—")</div>
+                                    <div class="small text-muted">
+                                        <span class="local-time" data-utc="@utcIso">—</span>
+                                        @if (!string.IsNullOrWhiteSpace(net?.FrequencyMhz))
+                                        {
+                                            <span class="ms-2 font-monospace">@net.FrequencyMhz</span>
+                                            @if (!string.IsNullOrWhiteSpace(net.FrequencyRange))
+                                            {
+                                                <span class="ms-1">@net.FrequencyRange</span>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <div class="text-end flex-shrink-0">
                                     @if (slot.NeedsNcs && !slot.HasVolunteer)
                                     {
-                                        <span class="fw-bold text-danger">NCS Needed</span>
+                                        <span class="fw-bold text-danger small">NCS Needed</span>
                                     }
                                     else if (slot.HasVolunteer)
                                     {
-                                        <span class="fw-bold text-warning">Volunteer Pending</span>
+                                        <span class="fw-bold text-warning small">Volunteer Pending</span>
                                     }
                                     else if (slot.CopyPasteFormat is not null)
                                     {
                                         @if (User.Identity?.IsAuthenticated == true)
                                         {
-                                            <span class="font-monospace">@slot.CopyPasteFormat</span>
+                                            <span class="font-monospace fw-semibold small">@slot.CopyPasteFormat</span>
                                         }
                                         else
                                         {
-                                            <span>@slot.Callsign</span>
+                                            <span class="font-monospace fw-semibold small">@slot.Callsign</span>
                                         }
                                         @if (slot.AssignmentType == AssignmentType.Substitute)
                                         {
-                                            <span class="badge bg-info text-dark ms-1">sub</span>
+                                            <div><span class="badge bg-info text-dark">sub</span></div>
                                         }
                                     }
                                     else
                                     {
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted small">—</span>
                                     }
-                                </td>
-                                <td class="text-nowrap text-muted small">
-                                    @(net?.ScheduledTimeUtc.ToString("HH:mm"))z
-                                </td>
-                                <td class="text-nowrap small">
-                                    <span class="local-time" data-utc="@utcIso">—</span>
-                                </td>
-                                <td class="font-monospace small">
-                                    @if (!string.IsNullOrWhiteSpace(net?.FrequencyMhz))
-                                    {
-                                        @net.FrequencyMhz
-                                        if (!string.IsNullOrWhiteSpace(net.FrequencyRange))
-                                        {
-                                            <span class="text-muted ms-1">@net.FrequencyRange</span>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">—</span>
-                                    }
-                                </td>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @* Desktop: table (hidden below md) *@
+                <div class="d-none d-md-block table-responsive">
+                    <table class="table table-sm table-hover mb-0 border rounded-bottom">
+                        <thead class="table-light border-bottom">
+                            <tr>
+                                <th style="min-width:160px">Net</th>
+                                <th style="min-width:140px">NCS</th>
+                                <th class="text-nowrap">UTC</th>
+                                <th class="text-nowrap">Local</th>
+                                <th>Frequency</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var slot in daySlots)
+                            {
+                                var net = netLookup.GetValueOrDefault(slot.NetId);
+                                var utcIso = $"{slot.SessionDate:yyyy-MM-dd}T{net?.ScheduledTimeUtc:HH\\:mm\\:ss}Z";
+                                <tr class="@slot.CssClass" data-utc="@utcIso">
+                                    <td>
+                                        <span class="fw-semibold">@(net?.NetName ?? "—")</span>
+                                    </td>
+                                    <td>
+                                        @if (slot.NeedsNcs && !slot.HasVolunteer)
+                                        {
+                                            <span class="fw-bold text-danger">NCS Needed</span>
+                                        }
+                                        else if (slot.HasVolunteer)
+                                        {
+                                            <span class="fw-bold text-warning">Volunteer Pending</span>
+                                        }
+                                        else if (slot.CopyPasteFormat is not null)
+                                        {
+                                            @if (User.Identity?.IsAuthenticated == true)
+                                            {
+                                                <span class="font-monospace">@slot.CopyPasteFormat</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@slot.Callsign</span>
+                                            }
+                                            @if (slot.AssignmentType == AssignmentType.Substitute)
+                                            {
+                                                <span class="badge bg-info text-dark ms-1">sub</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-nowrap text-muted small">
+                                        @(net?.ScheduledTimeUtc.ToString("HH:mm"))z
+                                    </td>
+                                    <td class="text-nowrap small">
+                                        <span class="local-time" data-utc="@utcIso">—</span>
+                                    </td>
+                                    <td class="font-monospace small">
+                                        @if (!string.IsNullOrWhiteSpace(net?.FrequencyMhz))
+                                        {
+                                            @net.FrequencyMhz
+                                            if (!string.IsNullOrWhiteSpace(net.FrequencyRange))
+                                            {
+                                                <span class="text-muted ms-1">@net.FrequencyRange</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     }
@@ -129,6 +195,14 @@
     .slot-normal    { background-color: inherit; }
     .slot-open-badge      { background-color: #dc3545 !important; }
     .slot-volunteer-badge { background-color: #ffc107 !important; color: #000 !important; }
+
+    /* Mobile card list separators */
+    .schedule-card-list > .schedule-card {
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    .schedule-card-list > .schedule-card:last-child {
+        border-bottom: 0;
+    }
 </style>
 <script>
 (function () {
