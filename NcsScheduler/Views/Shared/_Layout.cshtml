@@ -4,6 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - NCS Scheduler</title>
+    <script>
+        // Apply saved theme before CSS loads to prevent light→dark flash
+        (function () {
+            var t = localStorage.getItem('ncs-theme');
+            if (t) document.documentElement.setAttribute('data-bs-theme', t);
+        })();
+    </script>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -68,7 +75,11 @@
                             }
                         }
                     </ul>
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav align-items-center">
+                        <li class="nav-item px-1">
+                            <button id="theme-toggle" class="btn btn-link text-white p-0 border-0 fs-5 lh-1"
+                                    title="Toggle light/dark mode" aria-label="Toggle colour theme">🌙</button>
+                        </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
@@ -135,6 +146,21 @@
                 }
             });
         });
+    </script>
+    <script>
+        (function () {
+            var html = document.documentElement;
+            var btn = document.getElementById('theme-toggle');
+            function getTheme() { return html.getAttribute('data-bs-theme') || 'light'; }
+            function updateBtn(theme) { btn.textContent = theme === 'dark' ? '☀️' : '🌙'; }
+            updateBtn(getTheme());
+            btn.addEventListener('click', function () {
+                var next = getTheme() === 'dark' ? 'light' : 'dark';
+                html.setAttribute('data-bs-theme', next);
+                localStorage.setItem('ncs-theme', next);
+                updateBtn(next);
+            });
+        })();
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
