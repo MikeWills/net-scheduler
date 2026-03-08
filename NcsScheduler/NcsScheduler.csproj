@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>3dba1f2e-3f43-4d52-ab37-54b3f44d70f5</UserSecretsId>
-    <Version>2026.0308.005312.7</Version>
+    <Version>2026.0308.005559.8</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MailKit" Version="4.15.0" />
@@ -20,8 +20,8 @@
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)deploy.ps1&quot;" />
   </Target>
   -->
-  <!-- Auto-versioning via PowerShell -->
-  <Target Name="SetVersion" BeforeTargets="Build">
+  <!-- Auto-versioning via PowerShell (Windows dev only; skipped on Linux/CI) -->
+  <Target Name="SetVersion" BeforeTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(SolutionDir)SetVersion.ps1&quot;" />
   </Target>
 </Project>
