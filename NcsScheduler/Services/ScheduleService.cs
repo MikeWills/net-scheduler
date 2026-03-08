@@ -14,6 +14,27 @@ public class ScheduleService : IScheduleService
         _db = db;
     }
 
+    // ── Eastern-time helpers ─────────────────────────────────────────────────
+    // Sessions are stored as UTC dates + UTC times. To decide which local
+    // calendar day a session actually falls on we convert to Eastern Time,
+    // which handles both EST (UTC-5) and EDT (UTC-4) automatically.
+
+    private static readonly TimeZoneInfo EasternZone = FindEasternZone();
+
+    private static TimeZoneInfo FindEasternZone()
+    {
+        // Windows uses "Eastern Standard Time"; Linux/macOS use "America/New_York"
+        if (TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var tz)) return tz;
+        if (TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out tz)) return tz;
+        return TimeZoneInfo.Utc;
+    }
+
+    private static DateOnly ToEasternDate(DateOnly utcDate, TimeOnly utcTime)
+    {
+        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
+    }
+
     public async Task GenerateAllSessionsAsync(int weeksAhead = 8)
     {
         var nets = await _db.Nets
@@ -91,12 +112,17 @@ public class ScheduleService : IScheduleService
             );
         }
 
-        // 2. Fall back to standing assignment
+        // 2. Fall back to standing assignment.
+        // Convert the UTC session date+time to Eastern local date so that a controller
+        // stored as "Sunday" is resolved for a session at 03:00z Monday (11 PM Sunday ET)
+        // rather than being matched against the UTC Monday date.
+        var localDate = ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+
         var standing = await _db.StandingAssignments
             .Include(sa => sa.NetController)
             .Where(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                sa.DayOfWeek == localDate.DayOfWeek &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate))
             .FirstOrDefaultAsync();
@@ -221,11 +247,17 @@ public class ScheduleService : IScheduleService
             return slot;
         }
 
-        // Fall back to standing assignment
+        // Fall back to standing assignment.
+        // Convert the UTC session date+time to Eastern local date so that a controller
+        // stored as "Sunday" is resolved for a session at 03:00z Monday (11 PM Sunday ET).
+        // Using Eastern TimeZoneInfo handles both EST and EDT automatically, correctly
+        // leaving 05:00z sessions on the same local calendar day (1 AM Eastern).
+        var localDate = ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+
         var standing = allStanding
             .Where(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                sa.DayOfWeek == localDate.DayOfWeek &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate))
             .FirstOrDefault();

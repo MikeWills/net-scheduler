@@ -48,9 +48,12 @@ public class ScheduleController : Controller
     public async Task<IActionResult> Index()
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        // Start from yesterday (UTC) so US-evening sessions whose UTC date is
+        // Start from yesterday (UTC) so US-evening sessions whose UTC date is "today"
+        // but local date is "yesterday" (e.g. 03:00z Mon = 11 PM Sun ET) are included.
+        // End at today+7 so the last local Saturday is fully covered: its early net at
+        // 03:00z falls on the next UTC day (Sunday), one day beyond today+6.
         var from = today.AddDays(-1);
-        var end = today.AddDays(6);
+        var end = today.AddDays(7);
 
         var vm = await _scheduleService.GetPublicScheduleAsync(from, end);
         return View(vm);

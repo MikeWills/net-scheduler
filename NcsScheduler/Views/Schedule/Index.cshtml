@@ -6,14 +6,26 @@
     // Build a lookup of net info keyed by NetId
     var netLookup = Model.Nets.ToDictionary(n => n.NetId);
 
-    // Flatten all resolved slots, sorted by UTC date then time, grouped by UTC date.
-    // No server-side cutoff — JS filters out rows > 1 hour past in the user's local TZ
-    // and relabels day headers with the correct local date.
+    // Flatten all resolved slots, grouped by Eastern local calendar date.
+    // Sessions are stored as UTC date + UTC time. Converting to Eastern Time means:
+    //   03:00z Mon UTC → 11 PM Sun ET → grouped under Sunday
+    //   05:00z Fri UTC →  1 AM Fri ET → grouped under Friday (same local day)
+    // No server-side cutoff — JS hides day-groups more than 1 hour in the past.
+    if (!TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var easternZone))
+        TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out easternZone);
+    easternZone ??= TimeZoneInfo.Utc;
+
+    DateOnly EasternDate(DateOnly utcDate, TimeOnly utcTime)
+    {
+        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, easternZone));
+    }
+
     var allSlots = Model.Weeks
         .SelectMany(w => w.Slots.Values)
-        .OrderBy(s => s.SessionDate)
-        .ThenBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue)
-        .GroupBy(s => s.SessionDate)
+        .GroupBy(s => netLookup.TryGetValue(s.NetId, out var net)
+            ? EasternDate(s.SessionDate, net.ScheduledTimeUtc)
+            : s.SessionDate)
         .OrderBy(g => g.Key)
         .ToList();
 }
@@ -38,6 +50,7 @@
         {
             var daySlots = day
                 .OrderBy(s => netLookup.TryGetValue(s.NetId, out var n) ? n.ScheduledTimeUtc : TimeOnly.MinValue)
+                .ThenBy(s => s.SessionDate)
                 .ToList();
             <div class="day-group mb-4">
                 <div class="day-header px-3 py-2 mb-0 rounded-top">
@@ -206,7 +219,7 @@
 </style>
 <script>
 (function () {
-    // Convert UTC timestamps to local times in the Local column
+    // 1. Convert UTC timestamps to local times in the Local/time columns.
     document.querySelectorAll('.local-time[data-utc]').forEach(function (el) {
         var d = new Date(el.dataset.utc);
         if (!isNaN(d)) {
@@ -214,24 +227,24 @@
         }
     });
 
-    // Relabel day-group headers with the LOCAL calendar date of each group's sessions.
-    // Sessions are grouped server-side by UTC date, but nets running at 03:00–05:00z fall
-    // on the previous local calendar day for US users. On DST transition days this creates
-    // an off-by-one where today's UTC group shows yesterday's local time and tomorrow's
-    // UTC group shows tonight's session. Reading the first slot's UTC timestamp and
-    // converting to local date fixes both the label and the DST edge case.
+    // 2. Hide day-groups whose LATEST session ended more than 1 hour ago (local time).
+    //    The server intentionally includes yesterday's UTC date so that US-evening sessions
+    //    (e.g. a net at 03:00z that falls on the previous local calendar day) are visible.
+    //    Without this filter those stale UTC-date groups remain on screen even after the
+    //    net has long since finished, causing the schedule to show a "wrong" time for the
+    //    current day — especially visible on DST transition nights when a pre-transition
+    //    session (10 PM EST) and the post-transition session (11 PM EDT) are both present.
+    var cutoffMs = 60 * 60 * 1000; // 1 hour
     document.querySelectorAll('.day-group').forEach(function (group) {
-        var firstSlot = group.querySelector('[data-utc]');
-        if (!firstSlot) return;
-        var d = new Date(firstSlot.dataset.utc);
-        if (isNaN(d)) return;
-        var headerShort = group.querySelector('.day-header-text .d-md-none');
-        var headerFull  = group.querySelector('.day-header-text .d-none.d-md-inline');
-        if (headerShort) {
-            headerShort.textContent = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        }
-        if (headerFull) {
-            headerFull.textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        // Find the latest UTC session time in this group.
+        var latestMs = -Infinity;
+        group.querySelectorAll('[data-utc]').forEach(function (el) {
+            var t = new Date(el.dataset.utc).getTime();
+            if (!isNaN(t) && t > latestMs) latestMs = t;
+        });
+        // If even the latest session is more than 1 hour in the past, hide the whole group.
+        if (latestMs !== -Infinity && Date.now() - latestMs > cutoffMs) {
+            group.style.display = 'none';
         }
     });
 })();
