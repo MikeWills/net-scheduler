@@ -65,7 +65,7 @@
                                     <td class="@tdClass">
                                         @if (cell.NeedsNcs && !cell.HasVolunteer)
                                         {
-                                            <span class="badge bg-danger">NEED NCS</span>
+                                            <span class="badge bg-danger">NCS Needed</span>
                                             if (!string.IsNullOrEmpty(cell.Callsign))
                                             {
                                                 <div class="small text-muted mt-1">(@cell.Callsign out)</div>
@@ -115,7 +115,7 @@
         <div class="mt-3 d-flex flex-wrap gap-3 align-items-center small">
             <span class="d-flex align-items-center gap-1">
                 <span class="legend-swatch" style="background:#f8d7da;border:1px solid #f5c2c7"></span>
-                NEED NCS
+                NCS Needed
             </span>
             <span class="d-flex align-items-center gap-1">
                 <span class="legend-swatch" style="background:#fff3cd;border:1px solid #ffc107"></span>

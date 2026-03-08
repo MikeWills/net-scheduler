@@ -23,7 +23,7 @@
         <h2 class="mb-0">Net Schedule</h2>
         <div class="d-flex flex-wrap gap-1 align-items-center">
             <span class="badge bg-secondary">Regular</span>
-            <span class="badge slot-open-badge">NEED NCS</span>
+            <span class="badge slot-open-badge">NCS Needed</span>
             <span class="badge slot-volunteer-badge">Volunteer Pending</span>
         </div>
     </div>
@@ -62,7 +62,7 @@
                                 <td>
                                     @if (slot.NeedsNcs && !slot.HasVolunteer)
                                     {
-                                        <span class="fw-bold text-danger">NEED NCS</span>
+                                        <span class="fw-bold text-danger">NCS Needed</span>
                                     }
                                     else if (slot.HasVolunteer)
                                     {

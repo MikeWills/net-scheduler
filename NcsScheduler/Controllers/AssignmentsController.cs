@@ -332,7 +332,7 @@ public class AssignmentsController : Controller
         }
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"{net.Name} on {sessionDate:MMMM d, yyyy} has been marked as open — it will show as NEED NCS.";
+        TempData["Success"] = $"{net.Name} on {sessionDate:MMMM d, yyyy} has been marked as open — it will show as NCS Needed.";
         return RedirectToAction("Index");
     }
 
