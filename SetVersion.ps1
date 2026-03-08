@@ -1,4 +1,4 @@
-$timestamp = Get-Date -Format "yyyy.MM.dd.HHmmss"
+$timestamp = Get-Date -Format "yyyy.MMdd.HHmmss"
 
 $csprojPath = "$PSScriptRoot\NcsScheduler\NcsScheduler.csproj"
 $xml = [xml](Get-Content $csprojPath)
