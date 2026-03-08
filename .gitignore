@@ -371,3 +371,4 @@ FodyWeavers.xsd
 
 # Windows reserved device name left by git filter-branch
 nul
+/release.txt
