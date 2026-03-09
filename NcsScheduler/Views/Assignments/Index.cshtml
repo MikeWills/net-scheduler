@@ -21,7 +21,7 @@
     // Distinct bands for the Regular Schedule filter
     var distinctBands = scheduledNets
         .Select(n => string.IsNullOrWhiteSpace(n.Band) ? "Other" : n.Band)
-        .Distinct().OrderBy(b => b).ToList();
+        .Distinct().OrderBy(b => BandHelper.SortKey(b)).ToList();
     bool showBandFilter = distinctBands.Count > 1;
 
     // Quick lookups

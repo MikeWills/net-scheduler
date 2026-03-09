@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NcsScheduler.Data;
+using NcsScheduler.Helpers;
 using NcsScheduler.Models.Domain;
 using NcsScheduler.Models.ViewModels;
 using NcsScheduler.Services;
@@ -22,12 +23,15 @@ public class NetsController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var nets = await _db.Nets
+        var nets = (await _db.Nets
             .Include(n => n.ScheduleRules.Where(r => r.IsActive))
             .Include(n => n.CoordinatorAssignments.Where(nca => nca.EndDate == null))
                 .ThenInclude(nca => nca.BandCoordinator).ThenInclude(bc => bc.NetController)
-            .OrderBy(n => n.Name)
-            .ToListAsync();
+            .ToListAsync())
+            .OrderBy(n => BandHelper.SortKey(n.Band))
+            .ThenBy(n => n.ScheduledTimeUtc)
+            .ThenBy(n => n.Name)
+            .ToList();
         return View(nets);
     }
 
