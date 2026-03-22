@@ -99,9 +99,7 @@
                                         }
                                         else
                                         {
-                                            @{
-                                                // Build popover content for the NCS callsign
-                                                var popoverLines = new System.Text.StringBuilder();
+                                            var popoverLines = new System.Text.StringBuilder();
                                                 if (cell.StandingNetNames.Any())
                                                     popoverLines.Append("Regularly runs: " + string.Join(", ", cell.StandingNetNames));
                                                 if (popoverLines.Length > 0) popoverLines.Append("<br>");
@@ -109,8 +107,7 @@
                                                     ? "Last ran: " + cell.LastScheduledDate.Value.ToString("MMM d, yyyy")
                                                     : "Last ran: not in past 90 days");
                                                 bool hasPopover = popoverLines.Length > 0;
-                                            }
-                                            @if (hasPopover)
+                                            if (hasPopover)
                                             {
                                                 <span class="font-monospace fw-semibold ncs-callsign"
                                                       tabindex="0"
