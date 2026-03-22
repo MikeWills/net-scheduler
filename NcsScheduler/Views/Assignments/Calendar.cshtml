@@ -94,6 +94,12 @@
                                         }
                                         else
                                         {
+                                            @* TODO: Add hover tooltip on the NCS callsign showing:
+                                               - The date of their last scheduled net
+                                               - The nets they are regularly scheduled for (from standing assignments)
+                                               This would help the BC quickly assess an NCS's experience and regular schedule
+                                               without navigating away. Consider using a Bootstrap tooltip or popover
+                                               populated via a partial AJAX call or data attributes set in the view model. *@
                                             <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
                                             if (cell.AssignmentType == AssignmentType.Substitute)
                                             {
