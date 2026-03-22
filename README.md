@@ -112,6 +112,7 @@ dotnet watch --project NcsScheduler/NcsScheduler.csproj
 ## Further Documentation
 
 - [Configuration Reference](docs/configuration.md) — appsettings, user secrets, production environment variables
+- [Deployment](docs/deployment.md) — publish, systemd service, Apache reverse proxy, SSL
 - [Roles](docs/roles.md) — what each role can do
 - [Project Structure](docs/project-structure.md) — file layout and data model notes
 - [Session Generation](docs/session-generation.md) — how the background scheduler works, EF migration commands
