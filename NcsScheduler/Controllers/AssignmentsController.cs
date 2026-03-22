@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NcsScheduler.Data;
 using NcsScheduler.Helpers;
 using NcsScheduler.Models.Domain;
@@ -16,12 +17,24 @@ public class AssignmentsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailService _emailService;
+    private readonly AppSettings _appSettings;
 
-    public AssignmentsController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IEmailService emailService)
+    public AssignmentsController(ApplicationDbContext db, UserManager<ApplicationUser> userManager,
+        IEmailService emailService, IOptions<AppSettings> appSettings)
     {
         _db = db;
         _userManager = userManager;
         _emailService = emailService;
+        _appSettings = appSettings.Value;
+    }
+
+    private string? BuildBcIcalUrl(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return null;
+        var baseUrl = _appSettings.BaseUrl?.TrimEnd('/');
+        if (!string.IsNullOrEmpty(baseUrl))
+            return $"{baseUrl}/Ical/BcFeed/{token}";
+        return Url.Action("BcFeed", "Ical", new { token }, Request.Scheme);
     }
 
     // GET: Assignments/Index
@@ -364,6 +377,16 @@ public class AssignmentsController : Controller
     public async Task<IActionResult> Calendar()
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        // Auto-generate an iCal token for this BC if they don't have one
+        var userId = _userManager.GetUserId(User)!;
+        var nc = await _db.NetControllers.FirstOrDefaultAsync(c => c.UserId == userId);
+        if (nc is not null && string.IsNullOrEmpty(nc.IcalToken))
+        {
+            nc.IcalToken = Guid.NewGuid().ToString("N");
+            await _db.SaveChangesAsync();
+        }
+        ViewBag.BcIcalFeedUrl = BuildBcIcalUrl(nc?.IcalToken);
 
         // "Next week" = the Sun–Sat block that starts after this week's Sunday.
         // e.g. if today is Sat Feb 28, this week's Sunday is Feb 22, next Sunday is Mar 1.

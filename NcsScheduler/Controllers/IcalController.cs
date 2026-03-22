@@ -232,6 +232,208 @@ public class IcalController : Controller
     }
 
     /// <summary>
+    /// GET /Ical/BcFeed/{token}
+    /// Returns an iCalendar feed showing all sessions for the BC's managed nets,
+    /// including who is running each one (or "Open" / "Volunteer Pending").
+    /// Authenticated by the BC's personal iCal token (same as their NCS feed token).
+    /// </summary>
+    [HttpGet]
+    [Route("Ical/BcFeed/{token}")]
+    public async Task<IActionResult> BcFeed(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return NotFound();
+
+        var nc = await _db.NetControllers
+            .FirstOrDefaultAsync(c => c.IcalToken == token);
+        if (nc is null) return NotFound();
+
+        // Verify this controller is an active band coordinator
+        var bc = await _db.BandCoordinators
+            .Include(b => b.NetAssignments)
+            .FirstOrDefaultAsync(b => b.NetControllerId == nc.Id && b.IsActive);
+        if (bc is null) return NotFound();
+
+        var managedNetIds = bc.NetAssignments
+            .Where(nca => nca.EndDate == null)
+            .Select(nca => nca.NetId)
+            .ToList();
+        if (!managedNetIds.Any()) return NotFound();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var windowEnd = today.AddDays(90);
+
+        // Load nets
+        var nets = await _db.Nets
+            .Where(n => managedNetIds.Contains(n.Id) && n.IsActive)
+            .ToDictionaryAsync(n => n.Id);
+
+        // Load sessions with their assignments
+        var sessions = await _db.NetSessions
+            .Include(s => s.Assignments.Where(a => a.Status != AssignmentStatus.Cancelled))
+                .ThenInclude(a => a.NetController)
+            .Where(s => managedNetIds.Contains(s.NetId)
+                     && s.SessionDate >= today
+                     && s.SessionDate <= windowEnd)
+            .OrderBy(s => s.SessionDate).ThenBy(s => s.ScheduledTimeUtc)
+            .ToListAsync();
+
+        // Load standing assignments covering the window
+        var standings = await _db.StandingAssignments
+            .Include(sa => sa.NetController)
+            .Where(sa => managedNetIds.Contains(sa.NetId)
+                      && (sa.EffectiveTo == null || sa.EffectiveTo >= today))
+            .ToListAsync();
+
+        // Load unavailabilities covering the window
+        var unavailabilities = await _db.Unavailabilities
+            .Where(u => u.StartDate <= windowEnd && u.EndDate >= today)
+            .ToListAsync();
+
+        // Build set of (netId, date) pairs covered by sessions
+        var sessionDates = sessions.ToDictionary(s => (s.NetId, s.SessionDate));
+
+        // For each net, generate dates from standing assignments (to cover sessions
+        // that may not yet be materialized) and merge with actual sessions
+        var events = new List<(DateOnly Date, TimeOnly TimeUtc, string NetName, string? FreqMhz,
+            string? FreqRange, string NcsDisplay)>();
+
+        var coveredKeys = new HashSet<(int, DateOnly)>();
+
+        foreach (var session in sessions)
+        {
+            if (!nets.TryGetValue(session.NetId, out var net)) continue;
+            if (!net.IsInSeasonForDate(session.SessionDate)) continue;
+
+            // Resolve who is running this session
+            string ncsDisplay = ResolveNcsDisplay(session.NetId, session.SessionDate, session, standings, unavailabilities);
+
+            events.Add((session.SessionDate, session.ScheduledTimeUtc, net.Name,
+                net.FrequencyMhz, net.FrequencyRange, ncsDisplay));
+            coveredKeys.Add((session.NetId, session.SessionDate));
+        }
+
+        // Also generate events from standing assignments for days without a materialized session
+        foreach (var sa in standings.Where(sa => sa.EffectiveTo == null))
+        {
+            if (!nets.TryGetValue(sa.NetId, out var net)) continue;
+            for (var d = today; d <= windowEnd; d = d.AddDays(1))
+            {
+                if (d.DayOfWeek != sa.DayOfWeek) continue;
+                if (sa.EffectiveFrom > d) continue;
+                if (!net.IsInSeasonForDate(d)) continue;
+                if (coveredKeys.Contains((sa.NetId, d))) continue;
+
+                bool unavail = unavailabilities.Any(u =>
+                    u.NetControllerId == sa.NetControllerId &&
+                    u.StartDate <= d && u.EndDate >= d &&
+                    (u.NetId == null || u.NetId == sa.NetId));
+
+                string ncsDisplay = unavail
+                    ? $"Open ({sa.NetController.Callsign} unavailable)"
+                    : sa.NetController.CopyPasteFormat;
+
+                events.Add((d, net.ScheduledTimeUtc, net.Name, net.FrequencyMhz, net.FrequencyRange, ncsDisplay));
+            }
+        }
+
+        events = events.OrderBy(e => e.Date).ThenBy(e => e.TimeUtc).ThenBy(e => e.NetName).ToList();
+
+        // Generate iCalendar
+        var sb = new StringBuilder();
+        sb.Append("BEGIN:VCALENDAR\r\n");
+        sb.Append("VERSION:2.0\r\n");
+        sb.Append("PRODID:-//NCS Scheduler//BC Schedule//EN\r\n");
+        sb.Append("CALSCALE:GREGORIAN\r\n");
+        sb.Append("METHOD:PUBLISH\r\n");
+        sb.Append($"X-WR-CALNAME:NCS Schedule — {nc.Callsign} (BC)\r\n");
+        sb.Append("X-WR-CALDESC:Net sessions for your managed nets\r\n");
+        sb.Append("X-WR-TIMEZONE:UTC\r\n");
+        sb.Append("REFRESH-INTERVAL;VALUE=DURATION:PT6H\r\n");
+        sb.Append("X-PUBLISHED-TTL:PT6H\r\n");
+
+        foreach (var ev in events)
+        {
+            var netStart = new DateTime(ev.Date.Year, ev.Date.Month, ev.Date.Day,
+                ev.TimeUtc.Hour, ev.TimeUtc.Minute, 0, DateTimeKind.Utc);
+            var dtStart = netStart;
+            var dtEnd   = netStart.AddHours(1);
+
+            // Stable UID keyed on net name + date (no controller ID since BC views all)
+            var safeNetName = ev.NetName.Replace(" ", "_").Replace("/", "-");
+            var uid = $"{ev.Date:yyyyMMdd}-{safeNetName}-bc{bc.Id}@ncsscheduler";
+
+            var timeLabel = $"{ev.TimeUtc:HH:mm}z";
+            var summary = $"{ev.NetName}: {ev.NcsDisplay} at {timeLabel}";
+
+            var descParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(ev.FreqMhz))
+            {
+                var freq = ev.FreqMhz;
+                if (!string.IsNullOrWhiteSpace(ev.FreqRange))
+                    freq += $" ({ev.FreqRange})";
+                descParts.Add($"Frequency: {freq}");
+            }
+            descParts.Add($"NCS: {ev.NcsDisplay}");
+            var description = string.Join("\\n", descParts);
+
+            sb.Append("BEGIN:VEVENT\r\n");
+            sb.Append($"UID:{uid}\r\n");
+            sb.Append($"DTSTART:{dtStart:yyyyMMddTHHmmssZ}\r\n");
+            sb.Append($"DTEND:{dtEnd:yyyyMMddTHHmmssZ}\r\n");
+            sb.Append(FoldLine($"SUMMARY:{summary}"));
+            sb.Append(FoldLine($"DESCRIPTION:{description}"));
+            sb.Append("STATUS:CONFIRMED\r\n");
+            sb.Append("TRANSP:TRANSPARENT\r\n");
+            sb.Append("END:VEVENT\r\n");
+        }
+
+        sb.Append("END:VCALENDAR\r\n");
+        return Content(sb.ToString(), "text/calendar; charset=utf-8");
+    }
+
+    private static string ResolveNcsDisplay(
+        int netId, DateOnly date, NetSession session,
+        List<StandingAssignment> standings, List<Unavailability> unavailabilities)
+    {
+        // Explicit non-backup assignment takes priority
+        var explicit_ = session.Assignments
+            .Where(a => a.Status != AssignmentStatus.Cancelled
+                     && a.AssignmentType != AssignmentType.Backup)
+            .OrderByDescending(a => a.AssignedAt)
+            .FirstOrDefault();
+
+        if (explicit_ is not null)
+        {
+            bool isPending = explicit_.AssignmentType == AssignmentType.Volunteer
+                          && explicit_.Status == AssignmentStatus.Scheduled;
+            return isPending
+                ? $"Volunteer Pending ({explicit_.NetController.CopyPasteFormat})"
+                : explicit_.NetController.CopyPasteFormat;
+        }
+
+        // Fall back to standing assignment
+        var standing = standings.FirstOrDefault(sa =>
+            sa.NetId == netId &&
+            sa.DayOfWeek == date.DayOfWeek &&
+            sa.EffectiveFrom <= date &&
+            (sa.EffectiveTo == null || sa.EffectiveTo >= date));
+
+        if (standing is null)
+            return "Open";
+
+        bool unavail = unavailabilities.Any(u =>
+            u.NetControllerId == standing.NetControllerId &&
+            u.StartDate <= date && u.EndDate >= date &&
+            (u.NetId == null || u.NetId == netId));
+
+        if (unavail || session.IsForcedOpen)
+            return $"Open ({standing.NetController.Callsign} unavailable)";
+
+        return standing.NetController.CopyPasteFormat;
+    }
+
+    /// <summary>
     /// Folds a long iCal property line at 75 octets per RFC 5545 §3.1.
     /// Continuation lines begin with a single space.
     /// </summary>

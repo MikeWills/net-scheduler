@@ -31,6 +31,11 @@
                     }
                 </div>
             }
+            @if (ViewBag.BcIcalFeedUrl is string bcIcalUrl)
+            {
+                <a href="@bcIcalUrl" class="btn btn-outline-secondary btn-sm"
+                   title="Subscribe to your managed nets schedule in any calendar app">📅 Subscribe</a>
+            }
             <a href="https://www.omiss.net/membership/admin/" target="_blank" class="btn btn-outline-secondary btn-sm">OMISS Admin Site</a>
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Manage NCS Assignments</a>
         </div>
