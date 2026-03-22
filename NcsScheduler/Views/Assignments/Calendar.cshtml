@@ -94,17 +94,46 @@
                                         }
                                         else
                                         {
-                                            @* TODO: Add hover tooltip on the NCS callsign showing:
-                                               - The date of their last scheduled net
-                                               - The nets they are regularly scheduled for (from standing assignments)
-                                               This would help the BC quickly assess an NCS's experience and regular schedule
-                                               without navigating away. Consider using a Bootstrap tooltip or popover
-                                               populated via a partial AJAX call or data attributes set in the view model. *@
-                                            <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
+                                            @{
+                                                // Build popover content for the NCS callsign
+                                                var popoverLines = new System.Text.StringBuilder();
+                                                if (cell.StandingNetNames.Any())
+                                                    popoverLines.Append("Regularly runs: " + string.Join(", ", cell.StandingNetNames));
+                                                if (cell.LastScheduledDate.HasValue)
+                                                {
+                                                    if (popoverLines.Length > 0) popoverLines.Append("<br>");
+                                                    popoverLines.Append("Last ran: " + cell.LastScheduledDate.Value.ToString("MMM d, yyyy"));
+                                                }
+                                                bool hasPopover = popoverLines.Length > 0;
+                                            }
+                                            @if (hasPopover)
+                                            {
+                                                <span class="font-monospace fw-semibold ncs-callsign"
+                                                      tabindex="0"
+                                                      data-bs-toggle="popover"
+                                                      data-bs-trigger="hover focus"
+                                                      data-bs-html="true"
+                                                      data-bs-content="@popoverLines.ToString()">@cell.CopyPasteFormat</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
+                                            }
                                             if (cell.AssignmentType == AssignmentType.Substitute)
                                             {
                                                 <div><span class="badge bg-info text-dark mt-1">sub</span></div>
                                             }
+                                        }
+
+                                        @if (cell.BackupRequested)
+                                        {
+                                            <div class="mt-1">
+                                                <span class="badge bg-warning text-dark" title="Backup requested">&#9888; Backup</span>
+                                                @if (cell.BackupCallsigns.Any())
+                                                {
+                                                    <div class="small text-muted">@string.Join(", ", cell.BackupCallsigns)</div>
+                                                }
+                                            </div>
                                         }
 
                                         @* Change annotation *@
@@ -150,6 +179,14 @@
             <span class="d-flex align-items-center gap-1">
                 <span class="badge bg-warning text-dark">Volunteer</span>
                 Volunteer pending confirmation
+            </span>
+            <span class="d-flex align-items-center gap-1">
+                <span class="badge bg-warning text-dark">&#9888; Backup</span>
+                Backup standby requested
+            </span>
+            <span class="d-flex align-items-center gap-1">
+                <span class="ncs-callsign border-bottom border-secondary border-dotted">W1AW</span>
+                Hover for NCS details
             </span>
         </div>
     }
@@ -205,6 +242,12 @@
             flex-shrink: 0;
         }
 
+        /* NCS callsign with hover tooltip indicator */
+        .ncs-callsign[data-bs-toggle="popover"] {
+            cursor: help;
+            border-bottom: 1px dotted var(--bs-secondary-color);
+        }
+
         /* Keep table cells from getting too cramped on small screens */
         @@media (max-width: 768px) {
             .bc-calendar {
@@ -218,24 +261,29 @@
     </style>
     <script>
     (function () {
+        // Band filter buttons
         var filterBtns = document.querySelectorAll('#band-filter-btns [data-band-filter]');
-        if (!filterBtns.length) return;
+        if (filterBtns.length) {
+            filterBtns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    filterBtns.forEach(function (b) {
+                        b.classList.remove('active', 'btn-secondary');
+                        b.classList.add('btn-outline-secondary');
+                    });
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('active', 'btn-secondary');
 
-        filterBtns.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                // Update active button state
-                filterBtns.forEach(function (b) {
-                    b.classList.remove('active', 'btn-secondary');
-                    b.classList.add('btn-outline-secondary');
-                });
-                this.classList.remove('btn-outline-secondary');
-                this.classList.add('active', 'btn-secondary');
-
-                var filter = this.dataset.bandFilter;
-                document.querySelectorAll('tbody tr[data-band]').forEach(function (row) {
-                    row.style.display = (filter === 'all' || row.dataset.band === filter) ? '' : 'none';
+                    var filter = this.dataset.bandFilter;
+                    document.querySelectorAll('tbody tr[data-band]').forEach(function (row) {
+                        row.style.display = (filter === 'all' || row.dataset.band === filter) ? '' : 'none';
+                    });
                 });
             });
+        }
+
+        // Bootstrap popovers for NCS callsigns
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+            new bootstrap.Popover(el, { placement: 'top' });
         });
     })();
     </script>

@@ -27,12 +27,6 @@
     </div>
 
     <!-- Open Slots I Can Cover -->
-    @* TODO: Allow each NCS to select which nets they are willing to run (a per-user net preference list).
-       Open Slots shown here and any open-slot notifications (email) should be filtered to only include
-       nets the NCS has opted into. Requires:
-       - A new NetControllerNetPreference join entity (NetController → Net, many-to-many)
-       - A preferences UI on the dashboard or profile page for the NCS to check/uncheck nets
-       - Filtering OpenSlots in DashboardViewModel and in the email notification logic (EmailService) *@
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-header bg-danger text-white d-flex justify-content-between">
@@ -78,6 +72,50 @@
         </div>
     </div>
 
+    <!-- Backup Requests -->
+    @if (Model.BackupSessions.Any())
+    {
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between">
+                    <span>Backup Requests</span>
+                    <span class="badge bg-dark text-white">@Model.BackupSessions.Count</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Net</th><th>Date</th><th>NCS</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var backup in Model.BackupSessions)
+                            {
+                                <tr>
+                                    <td>@backup.NetName</td>
+                                    <td class="text-nowrap">@backup.SessionDate.ToString("ddd M/d/yy") @backup.ScheduledTimeUtc.ToString("HH:mm")z</td>
+                                    <td>@backup.RequestingNcsCallsign</td>
+                                    <td>
+                                        @if (backup.AlreadyStandingBy)
+                                        {
+                                            <span class="badge bg-success">Standing by</span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-controller="Volunteer" asp-action="StandByAsBackup" method="post" class="d-inline">
+                                                <input type="hidden" name="sessionId" value="@backup.SessionId" />
+                                                <input type="hidden" name="returnTo" value="Dashboard" />
+                                                <button type="submit" class="btn btn-sm btn-outline-warning">Stand By</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- My Upcoming Nets -->
     <div class="col-md-6">
         <div class="card h-100">
@@ -98,7 +136,7 @@
                 {
                     <table class="table table-sm mb-0">
                         <thead>
-                            <tr><th>Date (UTC)</th><th>Local</th><th>Net</th><th>Frequency</th></tr>
+                            <tr><th>Date (UTC)</th><th>Local</th><th>Net</th><th>Frequency</th><th></th></tr>
                         </thead>
                         <tbody>
                             @foreach (var item in Model.MyUpcomingNets)
@@ -118,6 +156,13 @@
                                         {
                                             <span class="badge bg-warning text-dark ms-1">Sub</span>
                                         }
+                                        @if (item.BackupRequested)
+                                        {
+                                            <br />
+                                            <small class="text-warning fw-semibold">
+                                                Backup requested (@item.BackupCount/2 standing by)
+                                            </small>
+                                        }
                                     </td>
                                     <td class="text-nowrap small font-monospace">
                                         @if (!string.IsNullOrEmpty(item.FrequencyMhz))
@@ -133,11 +178,85 @@
                                             <span class="text-muted">—</span>
                                         }
                                     </td>
+                                    <td class="text-nowrap">
+                                        @if (item.SessionId.HasValue)
+                                        {
+                                            @if (item.BackupRequested)
+                                            {
+                                                <form asp-controller="Volunteer" asp-action="CancelBackupRequest" method="post" class="d-inline">
+                                                    <input type="hidden" name="sessionId" value="@item.SessionId" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel Backup Request</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-controller="Volunteer" asp-action="RequestBackup" method="post" class="d-inline">
+                                                    <input type="hidden" name="sessionId" value="@item.SessionId" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning">Request Backup</button>
+                                                </form>
+                                            }
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                 }
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Preferences -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center"
+                 style="cursor:pointer" data-bs-toggle="collapse" data-bs-target="#netPreferencesBody">
+                <span>
+                    My Net Preferences
+                    <small class="text-muted ms-2">
+                        @if (!Model.NetPreferenceIds.Any())
+                        {
+                            <span>All nets (default)</span>
+                        }
+                        else
+                        {
+                            <span>@Model.NetPreferenceIds.Count of @Model.AllNets.Count selected</span>
+                        }
+                    </small>
+                </span>
+                <span class="text-muted small">&#x25BE;</span>
+            </div>
+            <div class="collapse" id="netPreferencesBody">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">
+                        Select the nets you are willing to run. Open slots and backup requests for unselected nets
+                        will not appear on your dashboard or in email notifications.
+                        Leave all unchecked to see slots for all nets.
+                    </p>
+                    <form asp-controller="Schedule" asp-action="SavePreferences" method="post">
+                        <div class="row g-2 mb-3">
+                            @foreach (var net in Model.AllNets)
+                            {
+                                <div class="col-sm-6 col-md-4 col-lg-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="selectedNetIds"
+                                               value="@net.Id" id="net-@net.Id"
+                                               @(Model.NetPreferenceIds.Contains(net.Id) ? "checked" : "") />
+                                        <label class="form-check-label" for="net-@net.Id">@net.Name</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">Save Preferences</button>
+                        @if (Model.NetPreferenceIds.Any())
+                        {
+                            <button type="submit" class="btn btn-sm btn-outline-secondary ms-2"
+                                    onclick="document.querySelectorAll('[name=selectedNetIds]').forEach(c => c.checked = false)">
+                                Clear All (show all nets)
+                            </button>
+                        }
+                    </form>
+                </div>
             </div>
         </div>
     </div>

@@ -405,6 +405,61 @@ public class AssignmentsController : Controller
             .Where(u => u.StartDate <= weekEnd && u.EndDate >= prevWeekStart)
             .ToListAsync();
 
+        // All standing assignments (all managed nets, for hover tooltip standing net list)
+        var allStandings = standings; // already covers managed nets and the window
+
+        // Recent past sessions (last 90 days) for managed nets — used for "last ran" tooltip
+        var historyStart = today.AddDays(-90);
+        var recentSessions = await _db.NetSessions
+            .Include(s => s.Assignments.Where(a => a.Status != AssignmentStatus.Cancelled))
+            .Where(s => managedNetIds.Contains(s.NetId)
+                     && s.SessionDate >= historyStart
+                     && s.SessionDate < today)
+            .ToListAsync();
+
+        // All active standings across managed nets (for tooltip: "regularly scheduled for...")
+        var allActiveStandings = await _db.StandingAssignments
+            .Include(sa => sa.Net)
+            .Where(sa => managedNetIds.Contains(sa.NetId) && sa.EffectiveTo == null)
+            .ToListAsync();
+
+        // Build per-controller lookup: last scheduled date and standing net names
+        var lastScheduledByController = new Dictionary<int, DateOnly>();
+        var standingNetsByController  = new Dictionary<int, List<string>>();
+
+        foreach (var session in recentSessions)
+        {
+            // Use standing assignment to find the NCS for each past session
+            var sa = allStandings.FirstOrDefault(x =>
+                x.NetId == session.NetId &&
+                x.DayOfWeek == session.SessionDate.DayOfWeek &&
+                x.EffectiveFrom <= session.SessionDate &&
+                (x.EffectiveTo == null || x.EffectiveTo >= session.SessionDate));
+
+            // Also check explicit confirmed assignments
+            var explicitNcsId = session.Assignments
+                .Where(a => a.AssignmentType != AssignmentType.Volunteer && a.AssignmentType != AssignmentType.Backup)
+                .Select(a => (int?)a.NetControllerId)
+                .FirstOrDefault();
+
+            var ncsId = explicitNcsId ?? sa?.NetControllerId;
+            if (ncsId is null) continue;
+
+            if (!lastScheduledByController.TryGetValue(ncsId.Value, out var existing) || session.SessionDate > existing)
+                lastScheduledByController[ncsId.Value] = session.SessionDate;
+        }
+
+        foreach (var sa in allActiveStandings)
+        {
+            if (!standingNetsByController.TryGetValue(sa.NetControllerId, out var list))
+            {
+                list = [];
+                standingNetsByController[sa.NetControllerId] = list;
+            }
+            var label = $"{sa.Net.Name} ({sa.DayOfWeek.ToString()[..3]})";
+            if (!list.Contains(label)) list.Add(label);
+        }
+
         var vm = new BcCalendarViewModel { WeekStart = weekStart, WeekEnd = weekEnd };
 
         foreach (var net in nets)
@@ -427,6 +482,26 @@ public class AssignmentsController : Controller
 
                 var nextCell = ResolveCellFromLoaded(net.Id, nextDate, nextSession, standings, unavailabilities);
                 var prevCell = ResolveCellFromLoaded(net.Id, prevDate, prevSession, standings, unavailabilities);
+
+                // Populate hover-tooltip data for assigned (non-open) cells
+                if (nextCell.NetControllerId.HasValue && !nextCell.NeedsNcs)
+                {
+                    var ncId = nextCell.NetControllerId.Value;
+                    if (lastScheduledByController.TryGetValue(ncId, out var lastDate))
+                        nextCell.LastScheduledDate = lastDate;
+                    if (standingNetsByController.TryGetValue(ncId, out var netNames))
+                        nextCell.StandingNetNames = netNames;
+                }
+
+                // Populate backup info
+                if (nextSession is not null && nextSession.BackupRequested)
+                {
+                    nextCell.BackupRequested = true;
+                    nextCell.BackupCallsigns = nextSession.Assignments
+                        .Where(a => a.AssignmentType == AssignmentType.Backup && a.Status != AssignmentStatus.Cancelled)
+                        .Select(a => a.NetController.Callsign)
+                        .ToList();
+                }
 
                 // Flag a change when the effective controller or open/covered state differs
                 bool changed = nextCell.Callsign    != prevCell.Callsign
@@ -453,14 +528,16 @@ public class AssignmentsController : Controller
     {
         var cell = new CalendarCell { Date = date, SessionId = session?.Id };
 
-        // Explicit assignment (sub or confirmed volunteer) takes priority
+        // Explicit assignment (sub or confirmed volunteer) takes priority — skip backups
         var explicit_ = session?.Assignments
-            .Where(a => a.Status != AssignmentStatus.Cancelled)
+            .Where(a => a.Status != AssignmentStatus.Cancelled
+                     && a.AssignmentType != AssignmentType.Backup)
             .OrderByDescending(a => a.AssignedAt)
             .FirstOrDefault();
 
         if (explicit_ is not null)
         {
+            cell.NetControllerId = explicit_.NetControllerId;
             cell.Callsign       = explicit_.NetController.Callsign;
             cell.MemberNumber   = explicit_.NetController.MemberNumber;
             cell.AssignmentType = explicit_.AssignmentType;
@@ -491,15 +568,17 @@ public class AssignmentsController : Controller
 
         if (unavailable || session?.IsForcedOpen == true)
         {
-            cell.NeedsNcs     = true;
-            cell.Callsign     = standing.NetController.Callsign;
-            cell.MemberNumber = standing.NetController.MemberNumber;
+            cell.NeedsNcs        = true;
+            cell.NetControllerId = standing.NetControllerId;
+            cell.Callsign        = standing.NetController.Callsign;
+            cell.MemberNumber    = standing.NetController.MemberNumber;
             return cell;
         }
 
-        cell.Callsign       = standing.NetController.Callsign;
-        cell.MemberNumber   = standing.NetController.MemberNumber;
-        cell.AssignmentType = AssignmentType.Regular;
+        cell.NetControllerId = standing.NetControllerId;
+        cell.Callsign        = standing.NetController.Callsign;
+        cell.MemberNumber    = standing.NetController.MemberNumber;
+        cell.AssignmentType  = AssignmentType.Regular;
         return cell;
     }
 

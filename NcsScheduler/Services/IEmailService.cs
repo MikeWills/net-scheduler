@@ -9,4 +9,5 @@ public interface IEmailService
     Task SendVolunteerNotificationAsync(NetController coordinator, NetSession session, NetController volunteer);
     Task SendAssignmentConfirmationAsync(NetController controller, NetSession session);
     Task SendPasswordResetAsync(string toEmail, string toName, string resetUrl);
+    Task SendBackupRequestAsync(IEnumerable<NetController> recipients, NetSession session, NetController requestingNcs);
 }
