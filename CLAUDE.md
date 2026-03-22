@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-NcsScheduler is an ASP.NET Core MVC web application targeting .NET 10.0. The solution file is `NcsScheduler.slnx` (the new XML solution format).
+NcsScheduler is an ASP.NET Core MVC web application targeting .NET 8.0. The solution file is `NcsScheduler.slnx` (the new XML solution format).
 
 ## Commands
 
@@ -32,10 +32,11 @@ Standard ASP.NET Core MVC layout inside the `NcsScheduler/` project:
 - `wwwroot/` — static assets (CSS, JS, libs via libman)
 - `appsettings.json` / `appsettings.Development.json` — configuration
 
-The project uses `MapStaticAssets()` (the .NET 9+ replacement for `UseStaticFiles`) and `.WithStaticAssets()` on the default controller route for fingerprinted static asset serving.
+The project uses `UseStaticFiles()` for static asset serving.
 
 ## Stack
 
-- .NET 10.0, C# with nullable reference types and implicit usings enabled
+- .NET 8.0, C# with nullable reference types and implicit usings enabled
 - Bootstrap 5, jQuery, jquery-validation (bundled in `wwwroot/lib/`)
-- No database or ORM configured yet
+- SQLite via Entity Framework Core
+- Deployed to Linux (Ubuntu) behind Apache reverse proxy

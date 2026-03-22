@@ -26,3 +26,10 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish NcsScheduler/NcsScheduler.csproj -c Release -o publish
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ncsscheduler
+        path: publish/
