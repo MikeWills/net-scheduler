@@ -65,6 +65,17 @@ public class VolunteerController : Controller
         return View(openSlots);
     }
 
+    // TODO: Add a "backup request" feature. The assigned NCS for a session should be able to flag
+    // that they may need a backup (e.g. not 100% sure they can make it). This would:
+    // - Add a BackupRequested flag (or status) to SessionAssignment
+    // - Send an email notification to NCS members (similar to open-slot notifications) inviting
+    //   a couple of volunteers to stand by as backup — not to replace the NCS, just to be on call
+    // - Show a "Stand By as Backup" button on the dashboard Open Slots card and/or volunteer page
+    // - Store backup volunteers as a new AssignmentType (e.g. AssignmentType.Backup) so they are
+    //   distinct from full volunteers and the BC can see who is on standby
+    // - Cap the number of accepted backups (e.g. 2) to avoid over-requesting
+    // - If the NCS later confirms they can run, notify the backups they are no longer needed
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Volunteer(int sessionId)
