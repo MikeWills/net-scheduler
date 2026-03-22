@@ -19,12 +19,17 @@ Built for OMISS 80m nets but designed to be configurable for any club running mu
 - iCal calendar feed — subscribe in any calendar app; token auto-generated on first dashboard visit
 - Self-service unavailability reporting (date ranges, per-net or all nets)
 - One-click volunteer sign-up for open slots
+- **Net preferences** — select which nets you are willing to cover; open slots and notifications are filtered accordingly (leave all unchecked to see everything)
+- **Backup requests** — if you are unsure you can make your session, flag it as needing a backup; opted-in NCS members receive an email and can stand by (capped at 2); you and the backups coordinate directly
 - Password reset via email ("Forgot your password?" link on login page)
 
 ### Band Coordinators
 - Manage assignments: assign subs, confirm volunteers, or manually open any date
 - "Assign Sub for Any Date" — create a session on any date even outside normal schedule rules
 - Weekly calendar view (Sunday–Saturday) formatted for copy-paste, with change highlighting vs. the prior week
+- Hover over any NCS callsign to see their regular standing nets and the date they last ran
+- Backup standby status visible per session cell (⚠ Backup badge with standby callsigns)
+- iCal calendar feed showing all managed-net sessions with the assigned NCS — subscribe in any calendar app via the Subscribe button on the Weekly Calendar page
 - Read-only view of the Net Controllers list
 - View limited to nets under the coordinator's management
 
@@ -236,12 +241,12 @@ NcsScheduler/
 │   ├── AssignmentsController.cs      # Coordinator assignment management + calendar
 │   ├── ControllersController.cs      # Net controller CRUD + activate/deactivate
 │   ├── CoordinatorsController.cs     # Band coordinator management
-│   ├── IcalController.cs             # Personal iCal calendar feed (token-authenticated)
+│   ├── IcalController.cs             # NCS personal feed (/Ical/Feed/{token}) + BC feed (/Ical/BcFeed/{token})
 │   ├── InvitationController.cs       # Send invite (inline) + accept invite flow
 │   ├── NetsController.cs             # Net CRUD
 │   ├── ScheduleController.cs         # Public schedule + personal dashboard
 │   ├── UnavailabilityController.cs   # Self-service unavailability
-│   └── VolunteerController.cs        # Volunteer sign-up for open slots
+│   └── VolunteerController.cs        # Volunteer sign-up, backup requests, net preferences save
 ├── Data/
 │   ├── ApplicationDbContext.cs       # EF DbContext + model configuration
 │   ├── DbSeeder.cs                   # Roles, admin user, default nets
@@ -251,7 +256,8 @@ NcsScheduler/
 │   │   ├── Net.cs, NetSession.cs, NetScheduleRule.cs
 │   │   ├── NetController.cs, StandingAssignment.cs, SessionAssignment.cs
 │   │   ├── Unavailability.cs, Invitation.cs, BandCoordinator.cs
-│   │   └── Enums.cs                  # AssignmentType, AssignmentStatus
+│   │   ├── NetControllerNetPreference.cs  # Per-user net opt-in preferences
+│   │   └── Enums.cs                  # AssignmentType (Regular/Substitute/Volunteer/Backup), AssignmentStatus
 │   └── ViewModels/                   # View-specific models
 ├── Services/
 │   ├── IScheduleService.cs / ScheduleService.cs   # Session generation & slot resolution
