@@ -27,6 +27,12 @@
     </div>
 
     <!-- Open Slots I Can Cover -->
+    @* TODO: Allow each NCS to select which nets they are willing to run (a per-user net preference list).
+       Open Slots shown here and any open-slot notifications (email) should be filtered to only include
+       nets the NCS has opted into. Requires:
+       - A new NetControllerNetPreference join entity (NetController → Net, many-to-many)
+       - A preferences UI on the dashboard or profile page for the NCS to check/uncheck nets
+       - Filtering OpenSlots in DashboardViewModel and in the email notification logic (EmailService) *@
     <div class="col-md-6">
         <div class="card h-100">
             <div class="card-header bg-danger text-white d-flex justify-content-between">
