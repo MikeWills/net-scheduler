@@ -72,9 +72,9 @@ public class VolunteerController : Controller
     //   a couple of volunteers to stand by as backup — not to replace the NCS, just to be on call
     // - Show a "Stand By as Backup" button on the dashboard Open Slots card and/or volunteer page
     // - Store backup volunteers as a new AssignmentType (e.g. AssignmentType.Backup) so they are
-    //   distinct from full volunteers and the BC can see who is on standby
+    //   distinct from full volunteers; the NCS and backups coordinate amongst themselves
     // - Cap the number of accepted backups (e.g. 2) to avoid over-requesting
-    // - If the NCS later confirms they can run, notify the backups they are no longer needed
+    // - No BC involvement required — this is self-managed by the net controllers
 
     [HttpPost]
     [ValidateAntiForgeryToken]
