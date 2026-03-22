@@ -104,11 +104,10 @@
                                                 var popoverLines = new System.Text.StringBuilder();
                                                 if (cell.StandingNetNames.Any())
                                                     popoverLines.Append("Regularly runs: " + string.Join(", ", cell.StandingNetNames));
-                                                if (cell.LastScheduledDate.HasValue)
-                                                {
-                                                    if (popoverLines.Length > 0) popoverLines.Append("<br>");
-                                                    popoverLines.Append("Last ran: " + cell.LastScheduledDate.Value.ToString("MMM d, yyyy"));
-                                                }
+                                                if (popoverLines.Length > 0) popoverLines.Append("<br>");
+                                                popoverLines.Append(cell.LastScheduledDate.HasValue
+                                                    ? "Last ran: " + cell.LastScheduledDate.Value.ToString("MMM d, yyyy")
+                                                    : "Last ran: not in past 90 days");
                                                 bool hasPopover = popoverLines.Length > 0;
                                             }
                                             @if (hasPopover)
