@@ -74,7 +74,8 @@ public class VolunteerController : Controller
     // - Store backup volunteers as a new AssignmentType (e.g. AssignmentType.Backup) so they are
     //   distinct from full volunteers; the NCS and backups coordinate amongst themselves
     // - Cap the number of accepted backups (e.g. 2) to avoid over-requesting
-    // - No BC involvement required — this is self-managed by the net controllers
+    // - No BC action required — coordination is self-managed by the net controllers, but the BC
+    //   should be able to see backup status (e.g. who is standing by) for awareness
 
     [HttpPost]
     [ValidateAntiForgeryToken]
