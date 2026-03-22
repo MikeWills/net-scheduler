@@ -19,6 +19,12 @@ public class NetSession
     /// </summary>
     public bool IsForcedOpen { get; set; }
 
+    /// <summary>
+    /// When true, the assigned NCS has flagged they may need a backup.
+    /// Other NCS members can stand by with AssignmentType.Backup.
+    /// </summary>
+    public bool BackupRequested { get; set; }
+
     // Navigation
     public ICollection<SessionAssignment> Assignments { get; set; } = [];
 }

@@ -2,6 +2,8 @@
 @using NcsScheduler.Models.Domain
 @{ ViewData["Title"] = "Open Slots"; }
 @{ int myControllerId = ViewBag.MyControllerId; }
+@{ var backupSessions = (List<NcsScheduler.Models.Domain.NetSession>)ViewBag.BackupSessions; }
+@{ var allStanding = (List<NcsScheduler.Models.Domain.StandingAssignment>)ViewBag.AllStanding; }
 
 <div class="mt-3">
     <h2>Open Slots</h2>
@@ -55,6 +57,74 @@
                                     <input type="hidden" name="sessionId" value="@session.Id" />
                                     <button type="submit" class="btn btn-sm btn-danger">Volunteer</button>
                                 </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (backupSessions.Any())
+    {
+        <h2 class="mt-4">Backup Requests</h2>
+        <p class="text-muted">The assigned NCS for these sessions may need a backup. Stand by to help if needed — you and the NCS will coordinate directly.</p>
+
+        <table class="table table-hover">
+            <thead class="table-warning">
+                <tr><th>Net</th><th>Date</th><th>Time (UTC)</th><th>NCS</th><th>Backups</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var session in backupSessions)
+                {
+                    var backups = session.Assignments
+                        .Where(a => a.AssignmentType == AssignmentType.Backup && a.Status != AssignmentStatus.Cancelled)
+                        .ToList();
+                    bool alreadyStandingBy = backups.Any(a => a.NetControllerId == myControllerId);
+
+                    var requestingAssignment = session.Assignments
+                        .FirstOrDefault(a => a.AssignmentType != AssignmentType.Backup && a.AssignmentType != AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled);
+                    var standingNcs = allStanding.FirstOrDefault(sa =>
+                        sa.NetId == session.NetId &&
+                        sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                        sa.EffectiveFrom <= session.SessionDate &&
+                        (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
+                    string ncsCallsign = requestingAssignment?.NetController?.Callsign
+                        ?? standingNcs?.NetController?.Callsign
+                        ?? "Unknown";
+
+                    <tr>
+                        <td>@session.Net?.Name</td>
+                        <td class="text-nowrap">@session.SessionDate.ToString("ddd, MMMM d, yyyy")</td>
+                        <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
+                        <td>@ncsCallsign</td>
+                        <td>
+                            @if (backups.Any())
+                            {
+                                @string.Join(", ", backups.Select(a => a.NetController?.Callsign))
+                            }
+                            else
+                            {
+                                <span class="text-muted">None yet</span>
+                            }
+                            <span class="text-muted small">(@backups.Count/2)</span>
+                        </td>
+                        <td>
+                            @if (alreadyStandingBy)
+                            {
+                                <span class="badge bg-success">Standing by</span>
+                            }
+                            else if (backups.Count < 2)
+                            {
+                                <form asp-controller="Volunteer" asp-action="StandByAsBackup" method="post" class="d-inline">
+                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                    <input type="hidden" name="returnTo" value="Volunteer" />
+                                    <button type="submit" class="btn btn-sm btn-warning">Stand By as Backup</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Full</span>
                             }
                         </td>
                     </tr>

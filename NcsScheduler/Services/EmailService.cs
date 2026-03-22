@@ -74,6 +74,20 @@ public class EmailService : IEmailService
         await SendAsync(toEmail, toName, subject, body);
     }
 
+    public async Task SendBackupRequestAsync(IEnumerable<NetController> recipients, NetSession session, NetController requestingNcs)
+    {
+        var subject = $"Backup requested: {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}";
+        var body = $"""
+            <p>{requestingNcs.Callsign} may need a backup for the {session.Net?.Name} on {session.SessionDate:dddd, MMMM d, yyyy} at {session.ScheduledTimeUtc:HH:mm}z.</p>
+            <p>If you are available to stand by as a backup NCS, please log in to NCS Scheduler and click <strong>Stand By as Backup</strong> on your dashboard. You and {requestingNcs.Callsign} will coordinate directly.</p>
+            """;
+        foreach (var recipient in recipients)
+        {
+            if (recipient.Email is not null)
+                await SendAsync(recipient.Email, recipient.Name, subject, body);
+        }
+    }
+
     private async Task SendAsync(string toEmail, string toName, string subject, string htmlBody)
     {
         if (string.IsNullOrWhiteSpace(_settings.SmtpHost) || string.IsNullOrWhiteSpace(_settings.FromAddress))

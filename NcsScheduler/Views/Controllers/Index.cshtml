@@ -6,7 +6,10 @@
         <h2>Net Controllers</h2>
         @if (User.IsInRole("SuperAdmin"))
         {
-            <a asp-action="Create" class="btn btn-dark">+ Add Controller</a>
+            <div class="d-flex gap-2">
+                <a asp-action="Import" class="btn btn-outline-dark">⬆ Import CSV</a>
+                <a asp-action="Create" class="btn btn-dark">+ Add Controller</a>
+            </div>
         }
     </div>
 
