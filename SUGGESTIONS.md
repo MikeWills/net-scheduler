@@ -40,5 +40,6 @@ Ideas for improving net management effectiveness and efficiency.
 ## Admin / Ops
 
 - **Bulk user import** ⭐ — CSV upload to add a roster of controllers at once instead of one at a time
+- **Configurable database provider** — swap SQLite for MySQL or SQL Server via a single config change; enables larger historical datasets, better concurrent write performance, and deployment to any standard hosting environment (shared hosting, cloud VMs, managed DB services); the codebase is already well-structured for this with no raw SQL
 - **Session archiving** — view and search past sessions without cluttering the active schedule
 - **Multiple clubs / net groups** — tenant-level separation if the app is ever shared beyond OMISS
