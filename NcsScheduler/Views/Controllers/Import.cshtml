@@ -1,0 +1,50 @@
+@{ ViewData["Title"] = "Import Net Controllers"; }
+
+<div class="row justify-content-center mt-3">
+    <div class="col-md-7">
+        <h2>Import Net Controllers</h2>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <p class="text-muted">
+            Upload a CSV file to add multiple net controllers at once. Existing callsigns are skipped.
+            After import you can send account invitations from the Net Controllers list.
+        </p>
+
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">CSV Format</div>
+            <div class="card-body">
+                <p class="mb-1">One controller per row. The header row is required.</p>
+                <code class="d-block mb-2">Callsign,Name,Email,Phone,MemberNumber</code>
+                <ul class="mb-2">
+                    <li><strong>Callsign</strong> — required, automatically uppercased</li>
+                    <li><strong>Name</strong> — required</li>
+                    <li><strong>Email</strong> — optional, used to send account invitations</li>
+                    <li><strong>Phone</strong> — optional</li>
+                    <li><strong>MemberNumber</strong> — optional</li>
+                </ul>
+                <a asp-action="DownloadTemplate" class="btn btn-sm btn-outline-secondary">
+                    ⬇ Download Template
+                </a>
+            </div>
+        </div>
+
+        <form asp-action="Import" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label for="file" class="form-label fw-semibold">CSV File</label>
+                <input type="file" id="file" name="file" accept=".csv,text/csv" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-dark">Upload &amp; Preview</button>
+            <a asp-action="Index" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
