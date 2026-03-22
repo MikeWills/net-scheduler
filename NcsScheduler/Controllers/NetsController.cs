@@ -52,7 +52,7 @@ public class NetsController : Controller
             FrequencyRange = model.FrequencyRange,
             Description = model.Description,
             ScheduledTimeUtc = model.ScheduledTimeUtc,
-            IsActive = true,
+            IsActive = model.IsActive,
             SeasonStart = model.SeasonStart,
             SeasonEnd   = model.SeasonEnd
         };
@@ -94,6 +94,30 @@ public class NetsController : Controller
             SelectedDays = net.ScheduleRules.Select(r => r.DayOfWeek).ToList()
         };
         return View(vm);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Duplicate(int id)
+    {
+        var net = await _db.Nets
+            .Include(n => n.ScheduleRules.Where(r => r.IsActive))
+            .FirstOrDefaultAsync(n => n.Id == id);
+        if (net is null) return NotFound();
+
+        var vm = new NetEditViewModel
+        {
+            Name = $"{net.Name} Copy",
+            Band = net.Band,
+            FrequencyMhz = net.FrequencyMhz,
+            FrequencyRange = net.FrequencyRange,
+            Description = net.Description,
+            ScheduledTimeUtc = net.ScheduledTimeUtc,
+            IsActive = false,
+            SeasonStart = net.SeasonStart,
+            SeasonEnd = net.SeasonEnd,
+            SelectedDays = net.ScheduleRules.Select(r => r.DayOfWeek).ToList()
+        };
+        return View("Create", vm);
     }
 
     [HttpPost]

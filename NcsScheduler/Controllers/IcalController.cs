@@ -15,6 +15,26 @@ public class IcalController : Controller
 {
     private readonly ApplicationDbContext _db;
 
+    private static readonly TimeZoneInfo EasternZone = FindEasternZone();
+
+    private static TimeZoneInfo FindEasternZone()
+    {
+        if (TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var tz)) return tz;
+        if (TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out tz)) return tz;
+        return TimeZoneInfo.Utc;
+    }
+
+    /// <summary>
+    /// Converts a UTC date + UTC time to the Eastern local date.
+    /// Standing assignments store DayOfWeek in Eastern time, so we need this
+    /// to match correctly (e.g. Sunday 03:00z = Saturday Eastern).
+    /// </summary>
+    private static DateOnly ToEasternDate(DateOnly utcDate, TimeOnly utcTime)
+    {
+        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
+    }
+
     public IcalController(ApplicationDbContext db)
     {
         _db = db;
@@ -87,12 +107,15 @@ public class IcalController : Controller
         var coveredKeys = new HashSet<(int NetId, DateOnly Date)>();
 
         // 1. Derive sessions from standing assignments
+        // StandingAssignment.DayOfWeek is stored in Eastern local time,
+        // so we convert each UTC date to Eastern to check the match.
         foreach (var sa in standingAssignments)
         {
             var net = sa.Net!;
             for (var d = today; d <= windowEnd; d = d.AddDays(1))
             {
-                if (d.DayOfWeek != sa.DayOfWeek) continue;
+                var easternDate = ToEasternDate(d, net.ScheduledTimeUtc);
+                if (easternDate.DayOfWeek != sa.DayOfWeek) continue;
                 if (sa.EffectiveFrom > d) continue;
                 if (!net.IsInSeasonForDate(d)) continue;
 
@@ -158,16 +181,20 @@ public class IcalController : Controller
 
         foreach (var ev in events)
         {
-            var dtStart = new DateTime(ev.Date.Year, ev.Date.Month, ev.Date.Day,
+            // Net start time in UTC
+            var netStart = new DateTime(ev.Date.Year, ev.Date.Month, ev.Date.Day,
                 ev.TimeUtc.Hour, ev.TimeUtc.Minute, 0, DateTimeKind.Utc);
-            var dtEnd = dtStart.AddHours(1);
+            // Event starts 30 minutes early for check-in
+            var dtStart = netStart.AddMinutes(-30);
+            var dtEnd = netStart.AddHours(1);
 
             // UID must be stable across refreshes — keyed on net + date
             var uid = $"{ev.Date:yyyyMMdd}-net{ev.NetId}-{nc.Id}@ncsscheduler";
 
+            var timeLabel = $"{ev.TimeUtc:HH:mm}z";
             var summary = ev.IsSubstitute
-                ? $"NCS (Sub): {ev.NetName}"
-                : $"NCS: {ev.NetName}";
+                ? $"NCS (Sub): {ev.NetName} at {timeLabel}"
+                : $"NCS: {ev.NetName} at {timeLabel}";
 
             var descParts = new List<string>();
             if (!string.IsNullOrWhiteSpace(ev.FrequencyMhz))
@@ -177,6 +204,7 @@ public class IcalController : Controller
                     freq += $" ({ev.FrequencyRange})";
                 descParts.Add($"Frequency: {freq}");
             }
+            descParts.Add($"Net starts at {timeLabel} — early check-in opens 30 min prior.");
             descParts.Add(ev.IsSubstitute
                 ? "You are scheduled as substitute Net Control Station."
                 : "You are scheduled as Net Control Station.");
@@ -190,6 +218,11 @@ public class IcalController : Controller
             sb.Append(FoldLine($"DESCRIPTION:{description}"));
             sb.Append("STATUS:CONFIRMED\r\n");
             sb.Append("TRANSP:OPAQUE\r\n");
+            sb.Append("BEGIN:VALARM\r\n");
+            sb.Append("TRIGGER:-PT15M\r\n");
+            sb.Append("ACTION:DISPLAY\r\n");
+            sb.Append("DESCRIPTION:NCS check-in starts in 15 minutes\r\n");
+            sb.Append("END:VALARM\r\n");
             sb.Append("END:VEVENT\r\n");
         }
 
