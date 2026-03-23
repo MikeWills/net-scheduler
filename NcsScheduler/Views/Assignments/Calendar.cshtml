@@ -34,8 +34,9 @@
             }
             @if (ViewBag.BcIcalFeedUrl is string bcIcalUrl)
             {
-                <a href="@bcIcalUrl" class="btn btn-outline-secondary btn-sm"
-                   title="Subscribe to your managed nets schedule in any calendar app">📅 Subscribe</a>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#bcIcalModal"
+                        title="Subscribe to your managed nets schedule in any calendar app">📅 Subscribe</button>
             }
             <a href="https://www.omiss.net/membership/admin/" target="_blank" class="btn btn-outline-secondary btn-sm">OMISS Admin Site</a>
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Manage NCS Assignments</a>
@@ -194,7 +195,20 @@
     }
 </div>
 
+@{
+    if (ViewBag.BcIcalFeedUrl is string bcModalUrl)
+    {
+        ViewData["IcalModalUrl"] = bcModalUrl;
+        ViewData["IcalModalId"] = "bcIcalModal";
+    }
+}
+@if (ViewBag.BcIcalFeedUrl is string _)
+{
+    <partial name="_IcalSubscribeModal" view-data="ViewData" />
+}
+
 @section Scripts {
+    <script src="~/js/ical-copy.js"></script>
     <style>
         .bc-calendar {
             font-size: .9rem;

@@ -1,0 +1,112 @@
+@* Reusable iCal subscribe modal. Pass the feed URL via ViewData["IcalModalUrl"]. *@
+@{
+    var icalModalUrl = ViewData["IcalModalUrl"] as string;
+    var modalId = ViewData["IcalModalId"] as string ?? "icalModal";
+}
+
+@if (!string.IsNullOrEmpty(icalModalUrl))
+{
+<div class="modal fade" id="@modalId" tabindex="-1" aria-labelledby="@(modalId)Label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="@(modalId)Label">Subscribe to Calendar Feed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-body-secondary small">
+                    Copy this URL and add it as a subscription in your calendar app.
+                    The feed updates every 6 hours and shows your next 90 days of net sessions.
+                </p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control form-control-sm font-monospace" id="@(modalId)Url"
+                           value="@icalModalUrl" readonly />
+                    <button class="btn btn-outline-primary btn-sm" type="button"
+                            onclick="copyIcalFeedUrl('@(modalId)Url', this)">Copy</button>
+                </div>
+
+                <p class="fw-bold mb-2">How to subscribe:</p>
+                <div class="accordion accordion-flush" id="@(modalId)Instructions">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#@(modalId)Google">
+                                Google Calendar
+                            </button>
+                        </h2>
+                        <div id="@(modalId)Google" class="accordion-collapse collapse" data-bs-parent="#@(modalId)Instructions">
+                            <div class="accordion-body small py-2">
+                                <ol class="mb-0 ps-3">
+                                    <li>Open <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">Google Calendar</a> on a computer</li>
+                                    <li>Click the <strong>+</strong> next to "Other calendars" in the left sidebar</li>
+                                    <li>Select <strong>From URL</strong></li>
+                                    <li>Paste the URL above and click <strong>Add calendar</strong></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#@(modalId)Outlook">
+                                Outlook / Outlook.com
+                            </button>
+                        </h2>
+                        <div id="@(modalId)Outlook" class="accordion-collapse collapse" data-bs-parent="#@(modalId)Instructions">
+                            <div class="accordion-body small py-2">
+                                <ol class="mb-0 ps-3">
+                                    <li>Open Outlook and go to the <strong>Calendar</strong> view</li>
+                                    <li>Click <strong>Add calendar</strong> &rarr; <strong>Subscribe from web</strong></li>
+                                    <li>Paste the URL above, give it a name, and click <strong>Import</strong></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#@(modalId)Apple">
+                                Apple Calendar (Mac / iOS)
+                            </button>
+                        </h2>
+                        <div id="@(modalId)Apple" class="accordion-collapse collapse" data-bs-parent="#@(modalId)Instructions">
+                            <div class="accordion-body small py-2">
+                                <ol class="mb-0 ps-3">
+                                    <li><strong>Mac:</strong> Open Calendar, go to <strong>File</strong> &rarr; <strong>New Calendar Subscription</strong>, paste the URL</li>
+                                    <li><strong>iPhone/iPad:</strong> Go to <strong>Settings</strong> &rarr; <strong>Calendar</strong> &rarr; <strong>Accounts</strong> &rarr; <strong>Add Account</strong> &rarr; <strong>Other</strong> &rarr; <strong>Add Subscribed Calendar</strong>, paste the URL</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#@(modalId)Android">
+                                Android
+                            </button>
+                        </h2>
+                        <div id="@(modalId)Android" class="accordion-collapse collapse" data-bs-parent="#@(modalId)Instructions">
+                            <div class="accordion-body small py-2">
+                                <p class="mb-1">Android's built-in Google Calendar app doesn't support URL subscriptions directly from the phone.</p>
+                                <ol class="mb-0 ps-3">
+                                    <li>Follow the <strong>Google Calendar</strong> instructions above using a computer or mobile browser at <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">calendar.google.com</a></li>
+                                    <li>The calendar will sync to your Android device automatically</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-body-secondary small mt-3 mb-0">
+                    <strong>Keep this URL private</strong> &mdash; anyone with it can view your schedule.
+                    <a href="https://github.com/MikeWills/net-scheduler/wiki/Net-Controller-User-Guide#calendar-feed"
+                       target="_blank" rel="noopener noreferrer">More help in the documentation</a>.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+}

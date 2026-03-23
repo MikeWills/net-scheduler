@@ -72,42 +72,29 @@
                     <h5 class="mb-0">Calendar Feed</h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted small mb-3">
-                        Subscribe to this URL in any calendar app (Google Calendar, Apple Calendar,
-                        Outlook, etc.) to see your upcoming net control sessions.
+                    <p class="text-body-secondary small mb-3">
+                        Subscribe to your net schedule in any calendar app.
                         The feed covers the next 90 days and refreshes every 6 hours.
                     </p>
-                    <div class="input-group mb-3">
-                        <input type="text" id="icalUrl" class="form-control font-monospace small"
-                               value="@Model.IcalFeedUrl" readonly />
-                        <button class="btn btn-outline-secondary" type="button" id="copyIcalBtn"
-                                onclick="copyIcalUrl()">Copy</button>
-                    </div>
-                    <a href="@Model.IcalFeedUrl" class="btn btn-sm btn-outline-dark"
-                       download="ncs-schedule.ics">⬇ Download .ics file</a>
-                    <p class="text-muted small mt-3 mb-0">
-                        <strong>Keep this URL private</strong> — anyone with it can view your schedule.
+                    <button type="button" class="btn btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#profileIcalModal">
+                        📅 Subscribe to Calendar Feed
+                    </button>
+                    <p class="text-body-secondary small mt-3 mb-0">
+                        <strong>Keep this URL private</strong> &mdash; anyone with it can view your schedule.
                         Contact your administrator if you need it reset.
                     </p>
                 </div>
             </div>
+
+            ViewData["IcalModalUrl"] = Model.IcalFeedUrl;
+            ViewData["IcalModalId"] = "profileIcalModal";
+            <partial name="_IcalSubscribeModal" view-data="ViewData" />
         }
     </div>
 </div>
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
-    <script>
-    function copyIcalUrl() {
-        navigator.clipboard.writeText(document.getElementById('icalUrl').value).then(function () {
-            var btn = document.getElementById('copyIcalBtn');
-            btn.textContent = 'Copied!';
-            btn.classList.replace('btn-outline-secondary', 'btn-success');
-            setTimeout(function () {
-                btn.textContent = 'Copy';
-                btn.classList.replace('btn-success', 'btn-outline-secondary');
-            }, 2000);
-        });
-    }
-    </script>
+    <script src="~/js/ical-copy.js"></script>
 }
