@@ -313,6 +313,12 @@ public class ScheduleController : Controller
 
         var icalUrl = BuildIcalUrl(nc.IcalToken);
 
+        // Upcoming holidays for the rest of this year + next year
+        var upcomingHolidays = await _db.Holidays
+            .Where(h => h.Date >= today)
+            .OrderBy(h => h.Date)
+            .ToListAsync();
+
         var vm = new DashboardViewModel
         {
             Callsign = nc.Callsign,
@@ -325,7 +331,8 @@ public class ScheduleController : Controller
             BackupSessions = backupSessions.OrderBy(b => b.SessionDate).ToList(),
             IcalFeedUrl = icalUrl,
             NetPreferenceIds = myPreferenceIds,
-            AllNets = allNets
+            AllNets = allNets,
+            UpcomingHolidays = upcomingHolidays
         };
 
         return View(vm);

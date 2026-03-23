@@ -23,6 +23,9 @@ public class DashboardViewModel
 
     /// <summary>All active nets, used to render the preferences UI.</summary>
     public List<Net> AllNets { get; set; } = [];
+
+    /// <summary>Upcoming holidays for the current year.</summary>
+    public List<Holiday> UpcomingHolidays { get; set; } = [];
 }
 
 public class UpcomingNetItem
