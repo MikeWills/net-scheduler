@@ -20,7 +20,8 @@
       "Bash(powershell.exe -Command \"where.exe sqlite3\")",
       "Bash(powershell.exe -Command \"Get-Command sqlite3 -ErrorAction SilentlyContinue\")",
       "Bash(dotnet ef database update --project NcsScheduler/NcsScheduler.csproj --startup-project NcsScheduler/NcsScheduler.csproj)",
-      "Bash(dotnet build --no-restore -v q)"
+      "Bash(dotnet build --no-restore -v q)",
+      "Bash(dotnet ef:*)"
     ]
   }
 }

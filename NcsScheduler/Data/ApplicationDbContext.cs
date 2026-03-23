@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Unavailability> Unavailabilities => Set<Unavailability>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<NetControllerNetPreference> NetPreferences => Set<NetControllerNetPreference>();
+    public DbSet<Holiday> Holidays => Set<Holiday>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -86,6 +87,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Unique: one preference entry per controller per net
         builder.Entity<NetControllerNetPreference>()
             .HasIndex(x => new { x.NetControllerId, x.NetId })
+            .IsUnique();
+
+        // Unique: one holiday per date per name
+        builder.Entity<Holiday>()
+            .HasIndex(x => new { x.Date, x.Name })
             .IsUnique();
     }
 }

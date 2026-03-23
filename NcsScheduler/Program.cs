@@ -46,6 +46,7 @@ builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("App"))
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<IHolidayService, HolidayService>();
 builder.Services.AddHostedService<SessionGeneratorService>();
 
 builder.Services.AddControllersWithViews();
