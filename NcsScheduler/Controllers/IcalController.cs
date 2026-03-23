@@ -319,7 +319,10 @@ public class IcalController : Controller
             if (!nets.TryGetValue(sa.NetId, out var net)) continue;
             for (var d = today; d <= windowEnd; d = d.AddDays(1))
             {
-                if (d.DayOfWeek != sa.DayOfWeek) continue;
+                // StandingAssignment.DayOfWeek is in Eastern local time,
+                // so convert the UTC date to Eastern before comparing
+                var easternDate = ToEasternDate(d, net.ScheduledTimeUtc);
+                if (easternDate.DayOfWeek != sa.DayOfWeek) continue;
                 if (sa.EffectiveFrom > d) continue;
                 if (!net.IsInSeasonForDate(d)) continue;
                 if (coveredKeys.Contains((sa.NetId, d))) continue;
@@ -364,9 +367,11 @@ public class IcalController : Controller
 
         foreach (var ev in events)
         {
+            // Net start time in UTC
             var netStart = new DateTime(ev.Date.Year, ev.Date.Month, ev.Date.Day,
                 ev.TimeUtc.Hour, ev.TimeUtc.Minute, 0, DateTimeKind.Utc);
-            var dtStart = netStart;
+            // Event starts 30 minutes early for check-in
+            var dtStart = netStart.AddMinutes(-30);
             var dtEnd   = netStart.AddHours(1);
 
             // Stable UID keyed on net name + date (no controller ID since BC views all)
@@ -385,6 +390,7 @@ public class IcalController : Controller
                 descParts.Add($"Frequency: {freq}");
             }
             descParts.Add($"NCS: {ev.NcsDisplay}");
+            descParts.Add($"Net starts at {timeLabel} — early check-in opens 30 min prior.");
             var description = string.Join("\\n", descParts);
 
             sb.Append("BEGIN:VEVENT\r\n");
