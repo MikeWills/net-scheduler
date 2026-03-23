@@ -2,6 +2,7 @@
 @using NcsScheduler.Models.ViewModels
 @{
     ViewData["Title"] = "Manage Assignments";
+    ViewData["HelpPage"] = "Band-Coordinator-User-Guide#assignments-page";
 
     var nets        = ViewBag.Nets        as List<Net>              ?? new();
     var controllers = ViewBag.Controllers as List<NetController>    ?? new();

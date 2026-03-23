@@ -346,7 +346,17 @@ public class IcalController : Controller
         sb.Append("PRODID:-//NCS Scheduler//BC Schedule//EN\r\n");
         sb.Append("CALSCALE:GREGORIAN\r\n");
         sb.Append("METHOD:PUBLISH\r\n");
-        sb.Append($"X-WR-CALNAME:NCS Schedule — {nc.Callsign} (BC)\r\n");
+        // Build a band list for the calendar name (e.g. "80m, 40m Net Schedule")
+        var bandLabels = nets.Values
+            .Select(n => n.Band)
+            .Where(b => !string.IsNullOrWhiteSpace(b))
+            .Distinct()
+            .OrderBy(b => b)
+            .ToList();
+        var calName = bandLabels.Any()
+            ? $"{string.Join(", ", bandLabels)} Net Schedule"
+            : "Net Schedule";
+        sb.Append($"X-WR-CALNAME:{calName}\r\n");
         sb.Append("X-WR-CALDESC:Net sessions for your managed nets\r\n");
         sb.Append("X-WR-TIMEZONE:UTC\r\n");
         sb.Append("REFRESH-INTERVAL;VALUE=DURATION:PT6H\r\n");

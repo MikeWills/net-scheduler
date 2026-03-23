@@ -1,6 +1,6 @@
 @model List<NcsScheduler.Models.Domain.NetSession>
 @using NcsScheduler.Models.Domain
-@{ ViewData["Title"] = "Open Slots"; }
+@{ ViewData["Title"] = "Open Slots"; ViewData["HelpPage"] = "Net-Controller-User-Guide#volunteering-for-open-slots"; }
 @{ int myControllerId = ViewBag.MyControllerId; }
 @{ var backupSessions = (List<NcsScheduler.Models.Domain.NetSession>)ViewBag.BackupSessions; }
 @{ var allStanding = (List<NcsScheduler.Models.Domain.StandingAssignment>)ViewBag.AllStanding; }

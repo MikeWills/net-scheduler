@@ -2,6 +2,7 @@
 @using NcsScheduler.Models.Domain
 @{
     ViewData["Title"] = "Standing Assignments";
+    ViewData["HelpPage"] = "Admin-User-Guide#standing-assignments";
     var nets        = ViewBag.Nets        as List<Net>              ?? new();
     var controllers = ViewBag.Controllers as List<NetController>    ?? new();
     var rules       = ViewBag.Rules       as List<NetScheduleRule>  ?? new();
