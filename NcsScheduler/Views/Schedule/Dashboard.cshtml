@@ -3,28 +3,22 @@
 @{ ViewData["Title"] = "Dashboard"; ViewData["HelpPage"] = "Net-Controller-User-Guide#your-dashboard"; }
 
 <div class="row mt-3">
-    <div class="col-12">
-        <h2>
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">
             Dashboard
             @if (!string.IsNullOrEmpty(Model.Callsign))
             {
                 <small class="text-muted fs-5 ms-2">@Model.CopyPaste</small>
             }
         </h2>
+        <div>
+            <a asp-controller="Unavailability" asp-action="Create" class="btn btn-outline-secondary btn-sm me-1">Mark Unavailable</a>
+            <a asp-controller="Schedule" asp-action="Index" class="btn btn-outline-secondary btn-sm">View Full Schedule</a>
+        </div>
     </div>
 </div>
 
 <div class="row g-3 mt-1">
-    <!-- Quick Actions -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">Quick Actions</div>
-            <div class="card-body py-2">
-                <a asp-controller="Unavailability" asp-action="Create" class="btn btn-outline-secondary me-2">Mark Unavailable</a>
-                <a asp-controller="Schedule" asp-action="Index" class="btn btn-outline-dark">View Full Schedule</a>
-            </div>
-        </div>
-    </div>
 
     <!-- Open Slots I Can Cover -->
     <div class="col-md-6">
@@ -123,8 +117,9 @@
                 <span>My Upcoming Nets</span>
                 @if (Model.IcalFeedUrl is not null)
                 {
-                    <a href="@Model.IcalFeedUrl" class="btn btn-sm btn-outline-light py-0"
-                       title="Subscribe to your net schedule in any calendar app">📅 Subscribe</a>
+                    <button type="button" class="btn btn-sm btn-outline-light py-0"
+                            data-bs-toggle="modal" data-bs-target="#icalModal"
+                            title="Subscribe to your net schedule in any calendar app">📅 Subscribe</button>
                 }
             </div>
             <div class="card-body p-0">
@@ -297,11 +292,130 @@
 
 </div>
 
+@if (Model.IcalFeedUrl is not null)
+{
+<div class="modal fade" id="icalModal" tabindex="-1" aria-labelledby="icalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="icalModalLabel">Subscribe to Calendar Feed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-body-secondary small">
+                    Copy this URL and add it as a subscription in your calendar app.
+                    The feed updates every 6 hours and shows your next 90 days of net sessions.
+                </p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control form-control-sm font-monospace" id="icalUrl"
+                           value="@Model.IcalFeedUrl" readonly />
+                    <button class="btn btn-outline-primary btn-sm" type="button" id="copyIcalBtn">Copy</button>
+                </div>
+                <div id="copyConfirm" class="text-success small mb-3" style="display:none;">Copied to clipboard!</div>
+
+                <p class="fw-bold mb-2">How to subscribe:</p>
+                <div class="accordion accordion-flush" id="calInstructions">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#instrGoogle">
+                                Google Calendar
+                            </button>
+                        </h2>
+                        <div id="instrGoogle" class="accordion-collapse collapse" data-bs-parent="#calInstructions">
+                            <div class="accordion-body small py-2">
+                                <ol class="mb-0 ps-3">
+                                    <li>Open <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">Google Calendar</a> on a computer</li>
+                                    <li>Click the <strong>+</strong> next to "Other calendars" in the left sidebar</li>
+                                    <li>Select <strong>From URL</strong></li>
+                                    <li>Paste the URL above and click <strong>Add calendar</strong></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#instrOutlook">
+                                Outlook / Outlook.com
+                            </button>
+                        </h2>
+                        <div id="instrOutlook" class="accordion-collapse collapse" data-bs-parent="#calInstructions">
+                            <div class="accordion-body small py-2">
+                                <ol class="mb-0 ps-3">
+                                    <li>Open Outlook and go to the <strong>Calendar</strong> view</li>
+                                    <li>Click <strong>Add calendar</strong> &rarr; <strong>Subscribe from web</strong></li>
+                                    <li>Paste the URL above, give it a name, and click <strong>Import</strong></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#instrApple">
+                                Apple Calendar (Mac / iOS)
+                            </button>
+                        </h2>
+                        <div id="instrApple" class="accordion-collapse collapse" data-bs-parent="#calInstructions">
+                            <div class="accordion-body small py-2">
+                                <ol class="mb-0 ps-3">
+                                    <li><strong>Mac:</strong> Open Calendar, go to <strong>File</strong> &rarr; <strong>New Calendar Subscription</strong>, paste the URL</li>
+                                    <li><strong>iPhone/iPad:</strong> Go to <strong>Settings</strong> &rarr; <strong>Calendar</strong> &rarr; <strong>Accounts</strong> &rarr; <strong>Add Account</strong> &rarr; <strong>Other</strong> &rarr; <strong>Add Subscribed Calendar</strong>, paste the URL</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#instrAndroid">
+                                Android
+                            </button>
+                        </h2>
+                        <div id="instrAndroid" class="accordion-collapse collapse" data-bs-parent="#calInstructions">
+                            <div class="accordion-body small py-2">
+                                <p class="mb-1">Android's built-in Google Calendar app doesn't support URL subscriptions directly from the phone.</p>
+                                <ol class="mb-0 ps-3">
+                                    <li>Follow the <strong>Google Calendar</strong> instructions above using a computer or mobile browser at <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">calendar.google.com</a></li>
+                                    <li>The calendar will sync to your Android device automatically</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-body-secondary small mt-3 mb-0">
+                    <strong>Keep this URL private</strong> &mdash; anyone with it can view your schedule.
+                    <a href="https://github.com/MikeWills/net-scheduler/wiki/Net-Controller-User-Guide#calendar-feed"
+                       target="_blank" rel="noopener noreferrer">More help in the documentation</a>.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
 @section Scripts {
 <script>
     document.querySelectorAll('.local-time[data-utc]').forEach(function (el) {
         var d = new Date(el.dataset.utc);
         el.textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     });
+
+    var copyBtn = document.getElementById('copyIcalBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+            var url = document.getElementById('icalUrl');
+            navigator.clipboard.writeText(url.value).then(function () {
+                var confirm = document.getElementById('copyConfirm');
+                confirm.style.display = 'block';
+                setTimeout(function () { confirm.style.display = 'none'; }, 3000);
+            });
+        });
+    }
 </script>
 }

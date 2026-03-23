@@ -313,9 +313,10 @@ public class ScheduleController : Controller
 
         var icalUrl = BuildIcalUrl(nc.IcalToken);
 
-        // Upcoming holidays for the rest of this year + next year
+        // Upcoming holidays for the next 12 months
+        var holidayEnd = today.AddDays(365);
         var upcomingHolidays = await _db.Holidays
-            .Where(h => h.Date >= today)
+            .Where(h => h.Date >= today && h.Date <= holidayEnd)
             .OrderBy(h => h.Date)
             .ToListAsync();
 
