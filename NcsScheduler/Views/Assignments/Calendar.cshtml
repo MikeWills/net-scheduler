@@ -144,6 +144,13 @@
                                             </div>
                                         }
 
+                                        @* TODO: Always display who ran this same day last week, even when nothing
+                                             changed. PrevCallsign (and PrevNeedsNcs) are already populated on
+                                             CalendarCell for change detection — reuse them to show a subtle
+                                             "last week: W1AW" line beneath the current assignment in every
+                                             cell where the net ran last week (PrevCallsign not null / PrevNeedsNcs
+                                             false). Style it smaller/muted so it doesn't compete with today's NCS. *@
+
                                         @* Change annotation *@
                                         @if (cell.IsChanged)
                                         {
