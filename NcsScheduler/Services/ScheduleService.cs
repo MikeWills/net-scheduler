@@ -63,6 +63,11 @@ public class ScheduleService : IScheduleService
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var end = today.AddDays(weeksAhead * 7);
 
+        // TODO: Never delete or prune past NetSessions. Historical sessions (and their
+        // SessionAssignments) must be retained indefinitely so band coordinators can
+        // browse previous weeks. Generation only ever adds missing future sessions;
+        // no cleanup pass should be introduced here or anywhere else.
+
         // Generate sessions from schedule rules
         var activeDays = net.ScheduleRules.Select(r => r.DayOfWeek).ToHashSet();
         for (var date = today; date <= end; date = date.AddDays(1))
