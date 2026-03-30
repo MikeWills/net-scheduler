@@ -19,6 +19,12 @@ public class NetSession
     /// </summary>
     public bool IsForcedOpen { get; set; }
 
+    // TODO: Add  int? CancelledByContestId (FK → Contest)  — non-null when this session
+    // was cancelled because the net opted out of running during that contest weekend.
+    // Replaces a simple bool so the UI can display the contest name (e.g. "Cancelled – CQ WW").
+    // Session generation sets this when a ContestNetCancellation row exists for the net + date range.
+    // The public schedule and BC calendar should suppress NCS-needed prompts for these sessions.
+
     /// <summary>
     /// When true, the assigned NCS has flagged they may need a backup.
     /// Other NCS members can stand by with AssignmentType.Backup.

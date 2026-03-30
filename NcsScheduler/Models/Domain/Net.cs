@@ -36,6 +36,29 @@ public class Net
         return dateMD >= startMD || dateMD <= endMD;
     }
 
+    // TODO: Contest cancellation support (configured per net by the BC).
+    //
+    // New domain models needed:
+    //   Contest          — Id, Name, Description, StartDateUtc (DateOnly), EndDateUtc (DateOnly),
+    //                      RecursAnnually (bool).  Managed globally by SuperAdmin.
+    //                      Examples: "CQ WW DX Contest" (Oct last full weekend),
+    //                                "ARRL Sweepstakes" (Nov), "Field Day" (June).
+    //
+    //   ContestNetCancellation — Id, ContestId (FK), NetId (FK).
+    //                      Presence of a row means this net is cancelled for that contest.
+    //                      BCs add/remove rows for their own nets; SuperAdmin can manage all.
+    //
+    // On Net: add navigation  ICollection<ContestNetCancellation> ContestCancellations
+    //
+    // Session generation (ScheduleService.GenerateSessionsAsync):
+    //   When creating or evaluating a session date, check whether any Contest date range
+    //   covers that date AND a ContestNetCancellation row exists for this net.
+    //   If so, set NetSession.IsCancelledByContest = true (see NetSession TODO).
+    //
+    // Public schedule and BC calendar:
+    //   Show cancelled sessions with a distinct badge/style, e.g. "Cancelled – CQ WW".
+    //   Do not prompt for NCS assignment on cancelled sessions.
+
     // Navigation
     public ICollection<NetScheduleRule> ScheduleRules { get; set; } = [];
     public ICollection<NetSession> Sessions { get; set; } = [];
