@@ -6,7 +6,7 @@
         <h2>Create Net</h2>
         <form asp-action="Create" method="post">
             @await Html.PartialAsync("_NetForm", Model)
-            <button type="submit" class="btn btn-dark">Create</button>
+            <button type="submit" class="btn btn-primary">Create</button>
             <a asp-action="Index" class="btn btn-outline-secondary ms-2">Cancel</a>
         </form>
     </div>

@@ -373,8 +373,9 @@ public class AssignmentsController : Controller
         return RedirectToAction("Index");
     }
 
-    // GET: Assignments/Calendar — weekly grid for the next Sun–Sat
-    public async Task<IActionResult> Calendar()
+    // GET: Assignments/Calendar — weekly grid for Sun–Sat
+    // offset: number of weeks from the current week (0 = this week, 1 = next, -1 = last)
+    public async Task<IActionResult> Calendar(int offset = 0)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -388,13 +389,13 @@ public class AssignmentsController : Controller
         }
         ViewBag.BcIcalFeedUrl = BuildBcIcalUrl(nc?.IcalToken);
 
-        // "Next week" = the Sun–Sat block that starts after this week's Sunday.
-        // e.g. if today is Sat Feb 28, this week's Sunday is Feb 22, next Sunday is Mar 1.
+        // Current week = the Sun–Sat block containing today, shifted by offset weeks.
         int daysSinceSunday = (int)today.DayOfWeek; // Sunday=0 … Saturday=6
         var thisWeekSunday  = today.AddDays(-daysSinceSunday);
-        var weekStart       = thisWeekSunday.AddDays(7);  // next Sunday
-        var weekEnd         = weekStart.AddDays(6);        // next Saturday
-        var prevWeekStart   = thisWeekSunday;              // this Sunday (for comparison)
+        var weekStart       = thisWeekSunday.AddDays(offset * 7);
+        var weekEnd         = weekStart.AddDays(6);
+        var prevWeekStart   = weekStart.AddDays(-7);  // previous week (for comparison)
+        ViewBag.WeekOffset = offset;
 
         var managedNetIds = await GetManagedNetIdsAsync();
 
@@ -498,6 +499,7 @@ public class AssignmentsController : Controller
                 if (!activeDays.Contains(dow)) continue; // net doesn't run this day
 
                 var nextDate = weekStart.AddDays(i);
+                if (!net.IsInSeasonForDate(nextDate)) continue; // net is out of season
                 var prevDate = prevWeekStart.AddDays(i);
 
                 var nextSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == nextDate);

@@ -7,8 +7,8 @@
         @if (User.IsInRole("SuperAdmin"))
         {
             <div class="d-flex gap-2">
-                <a asp-action="Import" class="btn btn-outline-dark">⬆ Import CSV</a>
-                <a asp-action="Create" class="btn btn-dark">+ Add Controller</a>
+                <a asp-action="Import" class="btn btn-outline-secondary">⬆ Import CSV</a>
+                <a asp-action="Create" class="btn btn-secondary">+ Add Controller</a>
             </div>
         }
     </div>
@@ -70,7 +70,7 @@
                     @if (User.IsInRole("SuperAdmin"))
                     {
                         <td class="text-nowrap">
-                            <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-dark me-1">Edit</a>
+                            <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
                             @if (nc.UserId is null && nc.IsActive && !string.IsNullOrEmpty(nc.Email))
                             {
                                 <form asp-controller="Invitation" asp-action="SendToController" method="post" class="d-inline me-1">

@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>3dba1f2e-3f43-4d52-ab37-54b3f44d70f5</UserSecretsId>
-    <Version>2026.0322.2346.53</Version>
+    <Version>2026.0405.2143.67</Version>
   </PropertyGroup>
   <ItemGroup>
     <Content Update="appsettings.json" CopyToPublishDirectory="Never" />
