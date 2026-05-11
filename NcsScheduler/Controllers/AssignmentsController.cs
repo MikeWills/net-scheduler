@@ -125,7 +125,8 @@ public class AssignmentsController : Controller
                                   && a.Status == AssignmentStatus.Confirmed);
             if (confirmed is not null) continue;
 
-            standingMap.TryGetValue((session.NetId, session.SessionDate.DayOfWeek), out var standing);
+            var localDate = ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+            standingMap.TryGetValue((session.NetId, localDate.DayOfWeek), out var standing);
 
             bool regularUnavailable = standing is not null && unavailabilities.Any(u =>
                 u.NetControllerId == standing.NetControllerId &&
