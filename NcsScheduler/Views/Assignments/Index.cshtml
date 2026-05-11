@@ -11,6 +11,12 @@
     var exceptions  = ViewBag.Exceptions  as List<AssignmentSlotItem> ?? new();
     var forcedOpen  = ViewBag.ForcedOpen  as List<NetSession>         ?? new();
 
+    var easternZone = TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var _etz)
+        ? _etz : (TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out _etz) ? _etz : TimeZoneInfo.Utc);
+    DateOnly EasternDate(DateOnly utcDate, TimeOnly utcTime) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(
+            utcDate.ToDateTime(utcTime, DateTimeKind.Utc), easternZone));
+
     var days = new[] {
         DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
         DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday
@@ -134,7 +140,7 @@
                             @foreach (var s in forcedOpen)
                             {
                                 <span class="badge bg-warning text-dark fs-6 fw-normal d-inline-flex align-items-center gap-2 px-3 py-2">
-                                    @s.Net?.Name — @s.SessionDate.ToString("ddd, MMM d")
+                                    @s.Net?.Name — @EasternDate(s.SessionDate, s.ScheduledTimeUtc).ToString("ddd, MMM d")
                                     <form asp-action="RemoveForceOpen" method="post" class="d-inline m-0 p-0">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="sessionId" value="@s.Id" />
@@ -288,7 +294,7 @@
                                     {
                                         <tr>
                                             <td class="fw-semibold text-nowrap">
-                                                @item.Session.SessionDate.ToString("ddd MMM d")
+                                                @EasternDate(item.Session.SessionDate, item.Session.ScheduledTimeUtc).ToString("ddd MMM d")
                                                 <br /><small class="text-muted">@item.Session.ScheduledTimeUtc.ToString("HH:mm")z</small>
                                             </td>
                                             <td>@item.Session.Net?.Name</td>

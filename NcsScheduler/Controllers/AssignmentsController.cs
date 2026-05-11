@@ -14,6 +14,32 @@ namespace NcsScheduler.Controllers;
 [Authorize(Policy = "CanManageNets")]
 public class AssignmentsController : Controller
 {
+    private static readonly TimeZoneInfo EasternZone = LoadEasternZone();
+
+    private static TimeZoneInfo LoadEasternZone()
+    {
+        if (TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var tz)) return tz;
+        if (TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out tz)) return tz;
+        return TimeZoneInfo.Utc;
+    }
+
+    private static DateOnly EasternToUtcDate(DateOnly easternDate, TimeOnly utcTime)
+    {
+        var sampleUtc = easternDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        var easternNetTime = TimeOnly.FromDateTime(
+            TimeZoneInfo.ConvertTimeFromUtc(sampleUtc, EasternZone));
+        var localDt = easternDate.ToDateTime(easternNetTime);
+        var utcDt = TimeZoneInfo.ConvertTimeToUtc(
+            DateTime.SpecifyKind(localDt, DateTimeKind.Unspecified), EasternZone);
+        return DateOnly.FromDateTime(utcDt);
+    }
+
+    private static DateOnly ToEasternDate(DateOnly utcDate, TimeOnly utcTime)
+    {
+        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
+    }
+
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailService _emailService;
@@ -270,16 +296,19 @@ public class AssignmentsController : Controller
         var controller = await _db.NetControllers.FindAsync(controllerId);
         if (controller is null) return NotFound();
 
+        // The BC enters an Eastern date; convert to the UTC SessionDate used in the database
+        var utcSessionDate = EasternToUtcDate(sessionDate, net.ScheduledTimeUtc);
+
         // Find or create the session for this net+date
         var session = await _db.NetSessions
-            .FirstOrDefaultAsync(s => s.NetId == netId && s.SessionDate == sessionDate);
+            .FirstOrDefaultAsync(s => s.NetId == netId && s.SessionDate == utcSessionDate);
 
         if (session is null)
         {
             session = new NetSession
             {
                 NetId = netId,
-                SessionDate = sessionDate,
+                SessionDate = utcSessionDate,
                 ScheduledTimeUtc = net.ScheduledTimeUtc
             };
             _db.NetSessions.Add(session);
@@ -328,16 +357,19 @@ public class AssignmentsController : Controller
         var net = await _db.Nets.FindAsync(netId);
         if (net is null) return NotFound();
 
+        // The BC enters an Eastern date; convert to the UTC SessionDate used in the database
+        var utcSessionDate = EasternToUtcDate(sessionDate, net.ScheduledTimeUtc);
+
         // Find or create the session
         var session = await _db.NetSessions
-            .FirstOrDefaultAsync(s => s.NetId == netId && s.SessionDate == sessionDate);
+            .FirstOrDefaultAsync(s => s.NetId == netId && s.SessionDate == utcSessionDate);
 
         if (session is null)
         {
             session = new NetSession
             {
                 NetId = netId,
-                SessionDate = sessionDate,
+                SessionDate = utcSessionDate,
                 ScheduledTimeUtc = net.ScheduledTimeUtc,
                 IsForcedOpen = true
             };
@@ -369,7 +401,8 @@ public class AssignmentsController : Controller
         session.IsForcedOpen = false;
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Open status cleared for {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}.";
+        var localDate = ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        TempData["Success"] = $"Open status cleared for {session.Net?.Name} on {localDate:MMMM d, yyyy}.";
         return RedirectToAction("Index");
     }
 
