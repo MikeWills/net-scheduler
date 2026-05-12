@@ -14,31 +14,6 @@ namespace NcsScheduler.Controllers;
 [Authorize(Policy = "CanManageNets")]
 public class AssignmentsController : Controller
 {
-    private static readonly TimeZoneInfo EasternZone = LoadEasternZone();
-
-    private static TimeZoneInfo LoadEasternZone()
-    {
-        if (TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var tz)) return tz;
-        if (TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out tz)) return tz;
-        return TimeZoneInfo.Utc;
-    }
-
-    private static DateOnly EasternToUtcDate(DateOnly easternDate, TimeOnly utcTime)
-    {
-        var sampleUtc = easternDate.ToDateTime(utcTime, DateTimeKind.Utc);
-        var easternNetTime = TimeOnly.FromDateTime(
-            TimeZoneInfo.ConvertTimeFromUtc(sampleUtc, EasternZone));
-        var localDt = easternDate.ToDateTime(easternNetTime);
-        var utcDt = TimeZoneInfo.ConvertTimeToUtc(
-            DateTime.SpecifyKind(localDt, DateTimeKind.Unspecified), EasternZone);
-        return DateOnly.FromDateTime(utcDt);
-    }
-
-    private static DateOnly ToEasternDate(DateOnly utcDate, TimeOnly utcTime)
-    {
-        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
-        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
-    }
 
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -125,7 +100,7 @@ public class AssignmentsController : Controller
                                   && a.Status == AssignmentStatus.Confirmed);
             if (confirmed is not null) continue;
 
-            var localDate = ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+            var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
             standingMap.TryGetValue((session.NetId, localDate.DayOfWeek), out var standing);
 
             bool regularUnavailable = standing is not null && unavailabilities.Any(u =>
@@ -228,7 +203,8 @@ public class AssignmentsController : Controller
         if (controller.NotifyOnAssigned)
             await _emailService.SendAssignmentConfirmationAsync(controller, session);
 
-        TempData["Success"] = $"Assigned {controller.Callsign} to {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}.";
+        var displayDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        TempData["Success"] = $"Assigned {controller.Callsign} to {session.Net?.Name} on {displayDate:MMMM d, yyyy}.";
         return RedirectToAction("Index");
     }
 
@@ -298,7 +274,7 @@ public class AssignmentsController : Controller
         if (controller is null) return NotFound();
 
         // The BC enters an Eastern date; convert to the UTC SessionDate used in the database
-        var utcSessionDate = EasternToUtcDate(sessionDate, net.ScheduledTimeUtc);
+        var utcSessionDate = DateConverter.ToUtcSessionDate(sessionDate, net.ScheduledTimeUtc);
 
         // Find or create the session for this net+date
         var session = await _db.NetSessions
@@ -359,7 +335,7 @@ public class AssignmentsController : Controller
         if (net is null) return NotFound();
 
         // The BC enters an Eastern date; convert to the UTC SessionDate used in the database
-        var utcSessionDate = EasternToUtcDate(sessionDate, net.ScheduledTimeUtc);
+        var utcSessionDate = DateConverter.ToUtcSessionDate(sessionDate, net.ScheduledTimeUtc);
 
         // Find or create the session
         var session = await _db.NetSessions
@@ -402,7 +378,7 @@ public class AssignmentsController : Controller
         session.IsForcedOpen = false;
         await _db.SaveChangesAsync();
 
-        var localDate = ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
         TempData["Success"] = $"Open status cleared for {session.Net?.Name} on {localDate:MMMM d, yyyy}.";
         return RedirectToAction("Index");
     }
@@ -488,9 +464,10 @@ public class AssignmentsController : Controller
         foreach (var session in recentSessions)
         {
             // Use standing assignment to find the NCS for each past session
+            var easternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
             var sa = allStandings.FirstOrDefault(x =>
                 x.NetId == session.NetId &&
-                x.DayOfWeek == session.SessionDate.DayOfWeek &&
+                x.DayOfWeek == easternDay &&
                 x.EffectiveFrom <= session.SessionDate &&
                 (x.EffectiveTo == null || x.EffectiveTo >= session.SessionDate));
 
@@ -539,8 +516,8 @@ public class AssignmentsController : Controller
                 var nextSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == nextDate);
                 var prevSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == prevDate);
 
-                var nextCell = ResolveCellFromLoaded(net.Id, nextDate, nextSession, standings, unavailabilities);
-                var prevCell = ResolveCellFromLoaded(net.Id, prevDate, prevSession, standings, unavailabilities);
+                var nextCell = ResolveCellFromLoaded(net.Id, nextDate, net.ScheduledTimeUtc, nextSession, standings, unavailabilities);
+                var prevCell = ResolveCellFromLoaded(net.Id, prevDate, net.ScheduledTimeUtc, prevSession, standings, unavailabilities);
 
                 // Populate hover-tooltip data for assigned (non-open) cells
                 if (nextCell.NetControllerId.HasValue && !nextCell.NeedsNcs)
@@ -582,7 +559,7 @@ public class AssignmentsController : Controller
 
     // Resolve a single calendar cell from in-memory data (mirrors ScheduleService logic)
     private static CalendarCell ResolveCellFromLoaded(
-        int netId, DateOnly date, NetSession? session,
+        int netId, DateOnly date, TimeOnly utcTime, NetSession? session,
         List<StandingAssignment> standings, List<Unavailability> unavailabilities)
     {
         var cell = new CalendarCell { Date = date, SessionId = session?.Id };
@@ -607,10 +584,11 @@ public class AssignmentsController : Controller
             return cell;
         }
 
-        // Fall back to standing assignment
+        // Fall back to standing assignment (use Eastern DayOfWeek to match)
+        var easternDay = DateConverter.ToEasternDate(date, utcTime).DayOfWeek;
         var standing = standings.FirstOrDefault(sa =>
             sa.NetId == netId &&
-            sa.DayOfWeek == date.DayOfWeek &&
+            sa.DayOfWeek == easternDay &&
             sa.EffectiveFrom <= date &&
             (sa.EffectiveTo == null || sa.EffectiveTo >= date));
 

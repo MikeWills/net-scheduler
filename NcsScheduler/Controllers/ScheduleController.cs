@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using NcsScheduler.Data;
 using NcsScheduler.Models.Domain;
 using NcsScheduler.Models.ViewModels;
+using NcsScheduler.Helpers;
 using NcsScheduler.Services;
 
 namespace NcsScheduler.Controllers;
@@ -154,9 +155,10 @@ public class ScheduleController : Controller
             // Skip sessions whose net is outside its season window
             if (!session.Net.IsInSeasonForDate(session.SessionDate)) continue;
 
+            var easternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
             var standing = allStanding.FirstOrDefault(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                sa.DayOfWeek == easternDay &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
 
@@ -183,7 +185,7 @@ public class ScheduleController : Controller
                     {
                         SessionId = session.Id,
                         NetName = session.Net.Name,
-                        SessionDate = session.SessionDate,
+                        SessionDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc),
                         ScheduledTimeUtc = session.ScheduledTimeUtc,
                         AlreadyVolunteered = alreadyVolunteered
                     });
@@ -221,7 +223,7 @@ public class ScheduleController : Controller
                 {
                     SessionId = session.Id,
                     NetName = session.Net.Name,
-                    SessionDate = session.SessionDate,
+                    SessionDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc),
                     ScheduledTimeUtc = session.ScheduledTimeUtc,
                     RequestingNcsCallsign = requestingCallsign,
                     BackupCount = backups.Count,
@@ -251,7 +253,9 @@ public class ScheduleController : Controller
         {
             for (var d = today; d <= in14; d = d.AddDays(1))
             {
-                if (d.DayOfWeek != sa.DayOfWeek) continue;
+                // StandingAssignment.DayOfWeek is Eastern; convert UTC date for comparison
+                var easternDay = DateConverter.ToEasternDate(d, sa.Net!.ScheduledTimeUtc).DayOfWeek;
+                if (easternDay != sa.DayOfWeek) continue;
                 if (myUnavailable.Contains(d)) continue;
 
                 // Skip if a session exists and has a confirmed substitute assigned to someone else
@@ -269,8 +273,8 @@ public class ScheduleController : Controller
                 upcoming.Add(new UpcomingNetItem
                 {
                     SessionId = session?.Id,
-                    SessionDate = d,
-                    ScheduledTimeUtc = sa.Net!.ScheduledTimeUtc,
+                    SessionDate = DateConverter.ToEasternDate(d, sa.Net.ScheduledTimeUtc),
+                    ScheduledTimeUtc = sa.Net.ScheduledTimeUtc,
                     NetName = sa.Net.Name,
                     FrequencyMhz = sa.Net.FrequencyMhz,
                     FrequencyRange = sa.Net.FrequencyRange,
@@ -287,9 +291,9 @@ public class ScheduleController : Controller
             a.NetSession.SessionDate <= in14 &&
             a.AssignmentType == AssignmentType.Substitute))
         {
-            var sessionDate = a.NetSession.SessionDate;
+            var easternDate = DateConverter.ToEasternDate(a.NetSession.SessionDate, a.NetSession.ScheduledTimeUtc);
             var netName = a.NetSession.Net!.Name;
-            if (!upcoming.Any(u => u.SessionDate == sessionDate && u.NetName == netName))
+            if (!upcoming.Any(u => u.SessionDate == easternDate && u.NetName == netName))
             {
                 var backups = a.NetSession.Assignments
                     .Where(b => b.AssignmentType == AssignmentType.Backup && b.Status != AssignmentStatus.Cancelled)
@@ -298,7 +302,7 @@ public class ScheduleController : Controller
                 upcoming.Add(new UpcomingNetItem
                 {
                     SessionId = a.NetSessionId,
-                    SessionDate = sessionDate,
+                    SessionDate = easternDate,
                     ScheduledTimeUtc = a.NetSession.ScheduledTimeUtc,
                     NetName = netName,
                     FrequencyMhz = a.NetSession.Net.FrequencyMhz,
