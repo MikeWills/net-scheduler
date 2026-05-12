@@ -1,5 +1,6 @@
 @model List<NcsScheduler.Models.Domain.NetSession>
 @using NcsScheduler.Models.Domain
+@using NcsScheduler.Helpers
 @{ ViewData["Title"] = "Open Slots"; ViewData["HelpPage"] = "Net-Controller-User-Guide#volunteering-for-open-slots"; }
 @{ int myControllerId = ViewBag.MyControllerId; }
 @{ var backupSessions = (List<NcsScheduler.Models.Domain.NetSession>)ViewBag.BackupSessions; }
@@ -29,7 +30,7 @@
 
                     <tr>
                         <td>@session.Net?.Name</td>
-                        <td class="text-nowrap">@session.SessionDate.ToString("ddd, MMMM d, yyyy")</td>
+                        <td class="text-nowrap">@DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMMM d, yyyy")</td>
                         <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
                         <td>
                             @{
@@ -84,9 +85,10 @@
 
                     var requestingAssignment = session.Assignments
                         .FirstOrDefault(a => a.AssignmentType != AssignmentType.Backup && a.AssignmentType != AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled);
+                    var viewEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
                     var standingNcs = allStanding.FirstOrDefault(sa =>
                         sa.NetId == session.NetId &&
-                        sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                        sa.DayOfWeek == viewEasternDay &&
                         sa.EffectiveFrom <= session.SessionDate &&
                         (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
                     string ncsCallsign = requestingAssignment?.NetController?.Callsign
@@ -95,7 +97,7 @@
 
                     <tr>
                         <td>@session.Net?.Name</td>
-                        <td class="text-nowrap">@session.SessionDate.ToString("ddd, MMMM d, yyyy")</td>
+                        <td class="text-nowrap">@DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMMM d, yyyy")</td>
                         <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
                         <td>@ncsCallsign</td>
                         <td>

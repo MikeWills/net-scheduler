@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using NcsScheduler.Helpers;
 using NcsScheduler.Models.Domain;
 
 namespace NcsScheduler.Services;
@@ -32,9 +33,10 @@ public class EmailService : IEmailService
     public async Task SendSlotOpenedAsync(NetController coordinator, NetSession session, NetController unavailableController)
     {
         if (coordinator.Email is null) return;
-        var subject = $"Open slot: {session.Net?.Name} on {session.SessionDate}";
+        var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        var subject = $"Open slot: {session.Net?.Name} on {localDate}";
         var body = $"""
-            <p>{unavailableController.Callsign} is unavailable for the {session.Net?.Name} on {session.SessionDate:dddd, MMMM d, yyyy}.</p>
+            <p>{unavailableController.Callsign} is unavailable for the {session.Net?.Name} on {localDate:dddd, MMMM d, yyyy}.</p>
             <p>Please log in to NCS Scheduler to assign a substitute.</p>
             """;
         await SendAsync(coordinator.Email, coordinator.Name, subject, body);
@@ -43,9 +45,10 @@ public class EmailService : IEmailService
     public async Task SendVolunteerNotificationAsync(NetController coordinator, NetSession session, NetController volunteer)
     {
         if (coordinator.Email is null) return;
-        var subject = $"Volunteer: {session.Net?.Name} on {session.SessionDate}";
+        var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        var subject = $"Volunteer: {session.Net?.Name} on {localDate}";
         var body = $"""
-            <p>{volunteer.Callsign} has volunteered to run the {session.Net?.Name} on {session.SessionDate:dddd, MMMM d, yyyy}.</p>
+            <p>{volunteer.Callsign} has volunteered to run the {session.Net?.Name} on {localDate:dddd, MMMM d, yyyy}.</p>
             <p>Please log in to NCS Scheduler to confirm or assign a different substitute.</p>
             """;
         await SendAsync(coordinator.Email, coordinator.Name, subject, body);
@@ -54,10 +57,11 @@ public class EmailService : IEmailService
     public async Task SendAssignmentConfirmationAsync(NetController controller, NetSession session)
     {
         if (controller.Email is null) return;
-        var subject = $"Assignment confirmed: {session.Net?.Name} on {session.SessionDate}";
+        var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        var subject = $"Assignment confirmed: {session.Net?.Name} on {localDate}";
         var body = $"""
             <p>Hi {controller.Name},</p>
-            <p>You have been confirmed as net controller for the {session.Net?.Name} on {session.SessionDate:dddd, MMMM d, yyyy} at {session.ScheduledTimeUtc:HH:mm}z.</p>
+            <p>You have been confirmed as net controller for the {session.Net?.Name} on {localDate:dddd, MMMM d, yyyy} at {session.ScheduledTimeUtc:HH:mm}z.</p>
             """;
         await SendAsync(controller.Email, controller.Name, subject, body);
     }
@@ -76,9 +80,10 @@ public class EmailService : IEmailService
 
     public async Task SendBackupRequestAsync(IEnumerable<NetController> recipients, NetSession session, NetController requestingNcs)
     {
-        var subject = $"Backup requested: {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}";
+        var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        var subject = $"Backup requested: {session.Net?.Name} on {localDate:MMMM d, yyyy}";
         var body = $"""
-            <p>{requestingNcs.Callsign} may need a backup for the {session.Net?.Name} on {session.SessionDate:dddd, MMMM d, yyyy} at {session.ScheduledTimeUtc:HH:mm}z.</p>
+            <p>{requestingNcs.Callsign} may need a backup for the {session.Net?.Name} on {localDate:dddd, MMMM d, yyyy} at {session.ScheduledTimeUtc:HH:mm}z.</p>
             <p>If you are available to stand by as a backup NCS, please log in to NCS Scheduler and click <strong>Stand By as Backup</strong> on your dashboard. You and {requestingNcs.Callsign} will coordinate directly.</p>
             """;
         foreach (var recipient in recipients)

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NcsScheduler.Data;
 using NcsScheduler.Models.Domain;
+using NcsScheduler.Helpers;
 using NcsScheduler.Services;
 
 namespace NcsScheduler.Controllers;
@@ -60,9 +61,10 @@ public class VolunteerController : Controller
                 return false;
             if (myPreferenceIds.Count > 0 && !myPreferenceIds.Contains(session.NetId)) return false;
             if (session.IsForcedOpen) return true;
+            var easternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
             var standing = allStanding.FirstOrDefault(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                sa.DayOfWeek == easternDay &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
             if (standing is null) return true;
@@ -90,9 +92,10 @@ public class VolunteerController : Controller
                 .FirstOrDefault(a => a.AssignmentType != AssignmentType.Backup
                                   && a.AssignmentType != AssignmentType.Volunteer
                                   && a.Status != AssignmentStatus.Cancelled);
+            var backupEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
             var standingNcs = allStanding.FirstOrDefault(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                sa.DayOfWeek == backupEasternDay &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
 
@@ -151,7 +154,8 @@ public class VolunteerController : Controller
         if (coord?.NotifyOnSlotOpened == true)
             await _emailService.SendVolunteerNotificationAsync(coord, session, user.NetController);
 
-        TempData["Success"] = $"You have volunteered for {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}.";
+        var volDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        TempData["Success"] = $"You have volunteered for {session.Net?.Name} on {volDate:MMMM d, yyyy}.";
         return RedirectToAction("Index");
     }
 
@@ -183,11 +187,12 @@ public class VolunteerController : Controller
 
         if (!isAssignedNcs)
         {
+            var reqEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
             var standing = await _db.StandingAssignments
                 .FirstOrDefaultAsync(sa =>
                     sa.NetId == session.NetId &&
                     sa.NetControllerId == nc.Id &&
-                    sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                    sa.DayOfWeek == reqEasternDay &&
                     sa.EffectiveFrom <= session.SessionDate &&
                     (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
             isAssignedNcs = standing is not null;
@@ -209,7 +214,8 @@ public class VolunteerController : Controller
 
         await _emailService.SendBackupRequestAsync(recipients, session, nc);
 
-        TempData["Success"] = $"Backup requested for {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}. An email has been sent to available NCS members.";
+        var reqDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        TempData["Success"] = $"Backup requested for {session.Net?.Name} on {reqDate:MMMM d, yyyy}. An email has been sent to available NCS members.";
         return RedirectToAction("Dashboard", "Schedule");
     }
 
@@ -237,11 +243,12 @@ public class VolunteerController : Controller
 
         if (!isAssignedNcs)
         {
+            var cancelEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
             var standing = await _db.StandingAssignments
                 .FirstOrDefaultAsync(sa =>
                     sa.NetId == session.NetId &&
                     sa.NetControllerId == nc.Id &&
-                    sa.DayOfWeek == session.SessionDate.DayOfWeek &&
+                    sa.DayOfWeek == cancelEasternDay &&
                     sa.EffectiveFrom <= session.SessionDate &&
                     (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
             isAssignedNcs = standing is not null;
@@ -264,7 +271,8 @@ public class VolunteerController : Controller
 
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Backup request cancelled for {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}.";
+        var cancelDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        TempData["Success"] = $"Backup request cancelled for {session.Net?.Name} on {cancelDate:MMMM d, yyyy}.";
         return RedirectToAction("Dashboard", "Schedule");
     }
 
@@ -318,7 +326,8 @@ public class VolunteerController : Controller
         });
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"You are now standing by as backup for {session.Net?.Name} on {session.SessionDate:MMMM d, yyyy}.";
+        var standbyDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        TempData["Success"] = $"You are now standing by as backup for {session.Net?.Name} on {standbyDate:MMMM d, yyyy}.";
         return RedirectToReturn(returnTo);
     }
 
