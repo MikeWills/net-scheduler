@@ -100,12 +100,13 @@ public class AssignmentsController : Controller
                                   && a.Status == AssignmentStatus.Confirmed);
             if (confirmed is not null) continue;
 
-            var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
-            standingMap.TryGetValue((session.NetId, localDate.DayOfWeek), out var standing);
+            var easternDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+            standingMap.TryGetValue((session.NetId, easternDate.DayOfWeek), out var standing);
 
+            // Unavailability dates are in Eastern; compare against the Eastern date
             bool regularUnavailable = standing is not null && unavailabilities.Any(u =>
                 u.NetControllerId == standing.NetControllerId &&
-                u.StartDate <= session.SessionDate && u.EndDate >= session.SessionDate &&
+                u.StartDate <= easternDate && u.EndDate >= easternDate &&
                 (u.NetId == null || u.NetId == session.NetId));
 
             bool isOpen = standing is null || regularUnavailable || session.IsForcedOpen;
