@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NcsScheduler.Data;
+using NcsScheduler.Helpers;
 using NcsScheduler.Models.Domain;
 using System.Text;
 
@@ -14,26 +15,6 @@ namespace NcsScheduler.Controllers;
 public class IcalController : Controller
 {
     private readonly ApplicationDbContext _db;
-
-    private static readonly TimeZoneInfo EasternZone = FindEasternZone();
-
-    private static TimeZoneInfo FindEasternZone()
-    {
-        if (TimeZoneInfo.TryFindSystemTimeZoneById("Eastern Standard Time", out var tz)) return tz;
-        if (TimeZoneInfo.TryFindSystemTimeZoneById("America/New_York", out tz)) return tz;
-        return TimeZoneInfo.Utc;
-    }
-
-    /// <summary>
-    /// Converts a UTC date + UTC time to the Eastern local date.
-    /// Standing assignments store DayOfWeek in Eastern time, so we need this
-    /// to match correctly (e.g. Sunday 03:00z = Saturday Eastern).
-    /// </summary>
-    private static DateOnly ToEasternDate(DateOnly utcDate, TimeOnly utcTime)
-    {
-        var utcDt = utcDate.ToDateTime(utcTime, DateTimeKind.Utc);
-        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcDt, EasternZone));
-    }
 
     public IcalController(ApplicationDbContext db)
     {
@@ -114,7 +95,7 @@ public class IcalController : Controller
             var net = sa.Net!;
             for (var d = today; d <= windowEnd; d = d.AddDays(1))
             {
-                var easternDate = ToEasternDate(d, net.ScheduledTimeUtc);
+                var easternDate = DateConverter.ToEasternDate(d, net.ScheduledTimeUtc);
                 if (easternDate.DayOfWeek != sa.DayOfWeek) continue;
                 if (sa.EffectiveFrom > d) continue;
                 if (!net.IsInSeasonForDate(d)) continue;
@@ -306,7 +287,7 @@ public class IcalController : Controller
             if (!net.IsInSeasonForDate(session.SessionDate)) continue;
 
             // Resolve who is running this session
-            string ncsDisplay = ResolveNcsDisplay(session.NetId, session.SessionDate, session, standings, unavailabilities);
+            string ncsDisplay = ResolveNcsDisplay(session.NetId, session.SessionDate, session.ScheduledTimeUtc, session, standings, unavailabilities);
 
             events.Add((session.SessionDate, session.ScheduledTimeUtc, net.Name,
                 net.FrequencyMhz, net.FrequencyRange, ncsDisplay));
@@ -321,7 +302,7 @@ public class IcalController : Controller
             {
                 // StandingAssignment.DayOfWeek is in Eastern local time,
                 // so convert the UTC date to Eastern before comparing
-                var easternDate = ToEasternDate(d, net.ScheduledTimeUtc);
+                var easternDate = DateConverter.ToEasternDate(d, net.ScheduledTimeUtc);
                 if (easternDate.DayOfWeek != sa.DayOfWeek) continue;
                 if (sa.EffectiveFrom > d) continue;
                 if (!net.IsInSeasonForDate(d)) continue;
@@ -409,7 +390,7 @@ public class IcalController : Controller
     }
 
     private static string ResolveNcsDisplay(
-        int netId, DateOnly date, NetSession session,
+        int netId, DateOnly date, TimeOnly utcTime, NetSession session,
         List<StandingAssignment> standings, List<Unavailability> unavailabilities)
     {
         // Explicit non-backup assignment takes priority
@@ -429,9 +410,12 @@ public class IcalController : Controller
         }
 
         // Fall back to standing assignment
+        // StandingAssignment.DayOfWeek is stored in Eastern local time,
+        // so convert the UTC date to Eastern before comparing
+        var easternDay = DateConverter.ToEasternDate(date, utcTime).DayOfWeek;
         var standing = standings.FirstOrDefault(sa =>
             sa.NetId == netId &&
-            sa.DayOfWeek == date.DayOfWeek &&
+            sa.DayOfWeek == easternDay &&
             sa.EffectiveFrom <= date &&
             (sa.EffectiveTo == null || sa.EffectiveTo >= date));
 
