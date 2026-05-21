@@ -136,10 +136,11 @@ public class ScheduleService : IScheduleService
         if (standing is null)
             return new SlotResolution(null, null, true, false);
 
-        // 3. Check unavailability for this controller on this date
+        // 3. Check unavailability for this controller on this date.
+        // Unavailability dates are in Eastern; compare against the Eastern date.
         var unavailable = await _db.Unavailabilities.AnyAsync(u =>
             u.NetControllerId == standing.NetControllerId &&
-            u.StartDate <= session.SessionDate && u.EndDate >= session.SessionDate &&
+            u.StartDate <= localDate && u.EndDate >= localDate &&
             (u.NetId == null || u.NetId == session.NetId));
 
         if (unavailable || session.IsForcedOpen)
@@ -278,9 +279,10 @@ public class ScheduleService : IScheduleService
             return slot;
         }
 
+        // Unavailability dates are in Eastern; compare against the Eastern date.
         var unavailable = allUnavailabilities.Any(u =>
             u.NetControllerId == standing.NetControllerId &&
-            u.StartDate <= session.SessionDate && u.EndDate >= session.SessionDate &&
+            u.StartDate <= localDate && u.EndDate >= localDate &&
             (u.NetId == null || u.NetId == session.NetId));
 
         if (unavailable || session.IsForcedOpen)

@@ -155,20 +155,21 @@ public class ScheduleController : Controller
             // Skip sessions whose net is outside its season window
             if (!session.Net.IsInSeasonForDate(session.SessionDate)) continue;
 
-            var easternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
+            var easternDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
             var standing = allStanding.FirstOrDefault(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == easternDay &&
+                sa.DayOfWeek == easternDate.DayOfWeek &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
 
             bool hasExplicit = session.Assignments.Any(a => a.AssignmentType != AssignmentType.Volunteer || a.Status == AssignmentStatus.Confirmed);
             if (!hasExplicit)
             {
+                // Unavailability dates are in Eastern; compare against the Eastern date
                 bool isOpen = session.IsForcedOpen || standing is null ||
                     allUnavailabilities.Any(u =>
                         u.NetControllerId == standing.NetControllerId &&
-                        u.StartDate <= session.SessionDate && u.EndDate >= session.SessionDate &&
+                        u.StartDate <= easternDate && u.EndDate >= easternDate &&
                         (u.NetId == null || u.NetId == session.NetId));
 
                 if (isOpen)
@@ -254,9 +255,10 @@ public class ScheduleController : Controller
             for (var d = today; d <= in14; d = d.AddDays(1))
             {
                 // StandingAssignment.DayOfWeek is Eastern; convert UTC date for comparison
-                var easternDay = DateConverter.ToEasternDate(d, sa.Net!.ScheduledTimeUtc).DayOfWeek;
-                if (easternDay != sa.DayOfWeek) continue;
-                if (myUnavailable.Contains(d)) continue;
+                var easternDay = DateConverter.ToEasternDate(d, sa.Net!.ScheduledTimeUtc);
+                if (easternDay.DayOfWeek != sa.DayOfWeek) continue;
+                // Unavailability dates are in Eastern; compare against the Eastern date
+                if (myUnavailable.Contains(easternDay)) continue;
 
                 // Skip if a session exists and has a confirmed substitute assigned to someone else
                 var session = sessionsInWindow

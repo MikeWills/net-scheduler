@@ -100,9 +100,10 @@ public class IcalController : Controller
                 if (sa.EffectiveFrom > d) continue;
                 if (!net.IsInSeasonForDate(d)) continue;
 
-                // Skip dates the controller has marked unavailable
+                // Skip dates the controller has marked unavailable.
+                // Unavailability dates are in Eastern; compare against the Eastern date.
                 bool unavailable = unavailabilities.Any(u =>
-                    u.StartDate <= d && u.EndDate >= d &&
+                    u.StartDate <= easternDate && u.EndDate >= easternDate &&
                     (u.NetId == null || u.NetId == sa.NetId));
                 if (unavailable) continue;
 
@@ -308,9 +309,10 @@ public class IcalController : Controller
                 if (!net.IsInSeasonForDate(d)) continue;
                 if (coveredKeys.Contains((sa.NetId, d))) continue;
 
+                // Unavailability dates are in Eastern; compare against the Eastern date
                 bool unavail = unavailabilities.Any(u =>
                     u.NetControllerId == sa.NetControllerId &&
-                    u.StartDate <= d && u.EndDate >= d &&
+                    u.StartDate <= easternDate && u.EndDate >= easternDate &&
                     (u.NetId == null || u.NetId == sa.NetId));
 
                 string ncsDisplay = unavail
@@ -422,9 +424,11 @@ public class IcalController : Controller
         if (standing is null)
             return "Open";
 
+        // Unavailability dates are in Eastern; compare against the Eastern date
+        var easternDate = DateConverter.ToEasternDate(date, utcTime);
         bool unavail = unavailabilities.Any(u =>
             u.NetControllerId == standing.NetControllerId &&
-            u.StartDate <= date && u.EndDate >= date &&
+            u.StartDate <= easternDate && u.EndDate >= easternDate &&
             (u.NetId == null || u.NetId == netId));
 
         if (unavail || session.IsForcedOpen)

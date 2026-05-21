@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NcsScheduler.Data;
+using NcsScheduler.Helpers;
 using NcsScheduler.Models.Domain;
 using NcsScheduler.Models.ViewModels;
 using NcsScheduler.Services;
@@ -165,13 +166,23 @@ public class UnavailabilityController : Controller
                 .Select(sa => sa.NetId)
                 .Distinct().ToListAsync();
 
-        // Find all sessions in the date range for the affected nets
+        // Find all sessions in the date range for the affected nets.
+        // Unavailability dates are in Eastern but SessionDate is UTC; for overnight
+        // nets (e.g. 03:00z Mon = Sun evening ET) the UTC date is one day ahead,
+        // so extend the query window by +1 day to catch those sessions.
         var sessions = await _db.NetSessions
             .Include(s => s.Net)
             .Where(s => netIds.Contains(s.NetId)
                      && s.SessionDate >= unavailability.StartDate
-                     && s.SessionDate <= unavailability.EndDate)
+                     && s.SessionDate <= unavailability.EndDate.AddDays(1))
             .ToListAsync();
+
+        // Filter in memory using Eastern date comparison for accuracy
+        sessions = sessions.Where(s =>
+        {
+            var easternDate = DateConverter.ToEasternDate(s.SessionDate, s.ScheduledTimeUtc);
+            return easternDate >= unavailability.StartDate && easternDate <= unavailability.EndDate;
+        }).ToList();
 
         // Notify each affected net's coordinator once per net
         var notifiedNets = new HashSet<int>();

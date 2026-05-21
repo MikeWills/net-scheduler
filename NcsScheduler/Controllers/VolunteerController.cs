@@ -61,16 +61,17 @@ public class VolunteerController : Controller
                 return false;
             if (myPreferenceIds.Count > 0 && !myPreferenceIds.Contains(session.NetId)) return false;
             if (session.IsForcedOpen) return true;
-            var easternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
+            var easternDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
             var standing = allStanding.FirstOrDefault(sa =>
                 sa.NetId == session.NetId &&
-                sa.DayOfWeek == easternDay &&
+                sa.DayOfWeek == easternDate.DayOfWeek &&
                 sa.EffectiveFrom <= session.SessionDate &&
                 (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
             if (standing is null) return true;
+            // Unavailability dates are in Eastern; compare against the Eastern date
             return allUnavailable.Any(u =>
                 u.NetControllerId == standing.NetControllerId &&
-                u.StartDate <= session.SessionDate && u.EndDate >= session.SessionDate &&
+                u.StartDate <= easternDate && u.EndDate >= easternDate &&
                 (u.NetId == null || u.NetId == session.NetId));
         }).ToList();
 
