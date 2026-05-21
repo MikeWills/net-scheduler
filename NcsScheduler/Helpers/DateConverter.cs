@@ -36,6 +36,15 @@ public static class DateConverter
     }
 
     /// <summary>
+    /// Returns today's date in Eastern time. Use instead of DateOnly.FromDateTime(DateTime.UtcNow)
+    /// when aligning to the user's local calendar (e.g. at 03:00z Monday UTC, it's still Sunday Eastern).
+    /// </summary>
+    public static DateOnly TodayEastern()
+    {
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, EasternZone));
+    }
+
+    /// <summary>
     /// Converts a UTC SessionDate back to the Eastern local date for display.
     /// Example: UTC Tuesday + 03:00z net → Eastern Monday (because 03:00 Tue UTC = 10 PM Mon ET).
     /// </summary>
