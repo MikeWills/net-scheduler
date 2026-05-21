@@ -388,6 +388,9 @@ public class AssignmentsController : Controller
     // offset: number of weeks from the current week (0 = this week, 1 = next, -1 = last)
     public async Task<IActionResult> Calendar(int offset = 0)
     {
+        // Use Eastern "today" so the week boundary is correct for US-evening nets
+        // (e.g. at 03:00z Monday UTC it's still Sunday Eastern)
+        var easternToday = DateConverter.TodayEastern();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Auto-generate an iCal token for this BC if they don't have one
@@ -400,9 +403,11 @@ public class AssignmentsController : Controller
         }
         ViewBag.BcIcalFeedUrl = BuildBcIcalUrl(nc?.IcalToken);
 
-        // Current week = the Sun–Sat block containing today, shifted by offset weeks.
-        int daysSinceSunday = (int)today.DayOfWeek; // Sunday=0 … Saturday=6
-        var thisWeekSunday  = today.AddDays(-daysSinceSunday);
+        // Current week = the Sun–Sat block containing Eastern today, shifted by offset weeks.
+        // Column dates represent Eastern calendar dates so overnight nets (03:00z Mon = Sun evening ET)
+        // appear under the correct Eastern day.
+        int daysSinceSunday = (int)easternToday.DayOfWeek; // Sunday=0 … Saturday=6
+        var thisWeekSunday  = easternToday.AddDays(-daysSinceSunday);
         var weekStart       = thisWeekSunday.AddDays(offset * 7);
         var weekEnd         = weekStart.AddDays(6);
         var prevWeekStart   = weekStart.AddDays(-7);  // previous week (for comparison)
@@ -419,13 +424,15 @@ public class AssignmentsController : Controller
             .ThenBy(n => n.Name)
             .ToList();
 
-        // Sessions for both weeks in one query
+        // Sessions for both weeks in one query.
+        // Column dates are Eastern; UTC session dates can be up to +1 day ahead,
+        // so extend the query window to capture overnight sessions.
         var allSessions = await _db.NetSessions
             .Include(s => s.Assignments.Where(a => a.Status != AssignmentStatus.Cancelled))
                 .ThenInclude(a => a.NetController)
             .Where(s => managedNetIds.Contains(s.NetId)
                      && s.SessionDate >= prevWeekStart
-                     && s.SessionDate <= weekEnd)
+                     && s.SessionDate <= weekEnd.AddDays(1))
             .ToListAsync();
 
         // Standing assignments that cover either week
@@ -500,25 +507,31 @@ public class AssignmentsController : Controller
 
         foreach (var net in nets)
         {
-            var activeDays = net.ScheduleRules.Select(r => r.DayOfWeek).ToHashSet();
-            if (!activeDays.Any()) continue; // holiday-only nets have no fixed day-of-week
+            // NetScheduleRule.DayOfWeek is in UTC; convert each rule to the Eastern
+            // day it represents so columns (which are Eastern dates) line up correctly.
+            var utcActiveDays = net.ScheduleRules.Select(r => r.DayOfWeek).ToHashSet();
+            if (!utcActiveDays.Any()) continue; // holiday-only nets have no fixed day-of-week
 
             var row = new CalendarNetRow { Net = net };
 
             for (int i = 0; i < 7; i++)
             {
-                var dow = (DayOfWeek)i;
-                if (!activeDays.Contains(dow)) continue; // net doesn't run this day
+                // Column dates are Eastern dates
+                var nextEasternDate = weekStart.AddDays(i);
+                // Convert Eastern date → UTC session date for lookup
+                var nextUtcDate = DateConverter.ToUtcSessionDate(nextEasternDate, net.ScheduledTimeUtc);
+                // Check if net runs on the corresponding UTC day
+                if (!utcActiveDays.Contains(nextUtcDate.DayOfWeek)) continue;
+                if (!net.IsInSeasonForDate(nextUtcDate)) continue; // net is out of season
 
-                var nextDate = weekStart.AddDays(i);
-                if (!net.IsInSeasonForDate(nextDate)) continue; // net is out of season
-                var prevDate = prevWeekStart.AddDays(i);
+                var prevEasternDate = prevWeekStart.AddDays(i);
+                var prevUtcDate = DateConverter.ToUtcSessionDate(prevEasternDate, net.ScheduledTimeUtc);
 
-                var nextSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == nextDate);
-                var prevSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == prevDate);
+                var nextSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == nextUtcDate);
+                var prevSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == prevUtcDate);
 
-                var nextCell = ResolveCellFromLoaded(net.Id, nextDate, net.ScheduledTimeUtc, nextSession, standings, unavailabilities);
-                var prevCell = ResolveCellFromLoaded(net.Id, prevDate, net.ScheduledTimeUtc, prevSession, standings, unavailabilities);
+                var nextCell = ResolveCellFromLoaded(net.Id, nextUtcDate, net.ScheduledTimeUtc, nextSession, standings, unavailabilities);
+                var prevCell = ResolveCellFromLoaded(net.Id, prevUtcDate, net.ScheduledTimeUtc, prevSession, standings, unavailabilities);
 
                 // Populate hover-tooltip data for assigned (non-open) cells
                 if (nextCell.NetControllerId.HasValue && !nextCell.NeedsNcs)
@@ -586,10 +599,10 @@ public class AssignmentsController : Controller
         }
 
         // Fall back to standing assignment (use Eastern DayOfWeek to match)
-        var easternDay = DateConverter.ToEasternDate(date, utcTime).DayOfWeek;
+        var easternDate = DateConverter.ToEasternDate(date, utcTime);
         var standing = standings.FirstOrDefault(sa =>
             sa.NetId == netId &&
-            sa.DayOfWeek == easternDay &&
+            sa.DayOfWeek == easternDate.DayOfWeek &&
             sa.EffectiveFrom <= date &&
             (sa.EffectiveTo == null || sa.EffectiveTo >= date));
 
@@ -599,9 +612,10 @@ public class AssignmentsController : Controller
             return cell;
         }
 
+        // Unavailability dates are in Eastern; compare against the Eastern date
         bool unavailable = unavailabilities.Any(u =>
             u.NetControllerId == standing.NetControllerId &&
-            u.StartDate <= date && u.EndDate >= date &&
+            u.StartDate <= easternDate && u.EndDate >= easternDate &&
             (u.NetId == null || u.NetId == netId));
 
         if (unavailable || session?.IsForcedOpen == true)
