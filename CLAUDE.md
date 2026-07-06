@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-NcsScheduler is an ASP.NET Core MVC web application targeting .NET 8.0. The solution file is `NcsScheduler.slnx` (the new XML solution format). Built for the OMISS amateur radio club to manage net control station scheduling.
+NcsScheduler is an ASP.NET Core MVC web application targeting .NET 10.0. The solution file is `NcsScheduler.slnx` (the new XML solution format). Built for the OMISS amateur radio club to manage net control station scheduling.
 
 ## Commands
 
@@ -38,9 +38,9 @@ Standard ASP.NET Core MVC layout inside the `NcsScheduler/` project:
 
 ## Stack
 
-- .NET 8.0, C# with nullable reference types and implicit usings enabled
+- .NET 10.0, C# with nullable reference types and implicit usings enabled
 - Bootstrap 5, jQuery, jquery-validation (bundled in `wwwroot/lib/`)
-- SQLite via Entity Framework Core 8
+- SQLite via Entity Framework Core 10
 - MailKit for SMTP email
 - ASP.NET Core Identity for authentication
 - Deployed to Linux (Ubuntu) behind Apache reverse proxy
