@@ -10,8 +10,8 @@ Built for OMISS 80m nets but designed to be configurable for any club running mu
 
 | Layer | Technology |
 |---|---|
-| Framework | ASP.NET Core MVC (.NET 8) |
-| Database | SQLite via Entity Framework Core 8 |
+| Framework | ASP.NET Core MVC (.NET 10) |
+| Database | SQLite via Entity Framework Core 10 |
 | Auth | ASP.NET Core Identity |
 | Email | MailKit (SMTP) |
 | Frontend | Bootstrap 5, jQuery, Tom Select (searchable dropdowns) |
@@ -21,7 +21,7 @@ Built for OMISS 80m nets but designed to be configurable for any club running mu
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Git
 
 No other infrastructure required — SQLite is file-based and bundled with the app.
@@ -106,6 +106,14 @@ dotnet watch --project NcsScheduler/NcsScheduler.csproj
 | 80m Early Net | Daily at 03:00z |
 | 80m Late Net | Friday + Saturday at 05:00z |
 | 80m Holiday Net | No auto-schedule rules — BC assigns sessions manually as needed |
+
+---
+
+## Automated Deploy
+
+Publishing a GitHub Release triggers `.github/workflows/deploy.yml`, which deploys to the production server over Tailscale: it backs up the SQLite DB, syncs the build output, restarts the systemd service, and health-checks it before finishing.
+
+One-time setup (Tailscale OAuth client, deploy user + SSH key on the server, GitHub repo secrets) is documented in [Deployment → Automated Deploy](docs/deployment.md#automated-deploy-github-actions).
 
 ---
 
