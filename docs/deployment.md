@@ -51,11 +51,15 @@ sudo usermod -aG www-data deploy
 sudo chmod -R g+w /opt/ncsscheduler
 
 # Restrict sudo to only the commands the workflow needs
-sudo tee /etc/sudoers.d/ncsscheduler-deploy <<'EOF'
+sudo tee /etc/sudoers.d/ncsscheduler-deploy > /dev/null <<'EOF'
+Defaults:deploy !requiretty
 deploy ALL=(root) NOPASSWD: /usr/bin/systemctl stop ncsscheduler, /usr/bin/systemctl start ncsscheduler, /usr/bin/chown -R www-data\:www-data /opt/ncsscheduler, /usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *, /usr/bin/journalctl -u ncsscheduler *
 EOF
+sudo chmod 0440 /etc/sudoers.d/ncsscheduler-deploy
 sudo visudo -c
 ```
+
+> `/etc/sudoers.d/` files **must** be mode `0440` — `tee` creates them with your default umask instead, so sudo silently ignores the file (and every sudo call falls back to demanding a password) until you `chmod` it. `visudo -c` will tell you if a file has the wrong permissions. The `!requiretty` line is defensive in case your server otherwise sets `Defaults requiretty` globally, which also breaks NOPASSWD sudo over a non-interactive SSH session.
 
 On your workstation, generate a dedicated deploy keypair and install the public half:
 ```bash

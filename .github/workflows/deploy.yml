@@ -65,7 +65,12 @@ jobs:
 
       - name: Sync files
         run: |
-          rsync -avz --delete \
+          # -rlvzc (not -a): the deploy user only has group-write on
+          # files owned by www-data, so it can write content but can't
+          # chown/chmod/touch them to match the source. Ownership gets
+          # fixed up in the next step, so we don't ask rsync to preserve
+          # owner/perms/times here.
+          rsync -rlvzc --delete \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
             --exclude '*.db' \
