@@ -65,12 +65,14 @@ jobs:
 
       - name: Sync files
         run: |
-          # -rlvzc (not -a): the deploy user only has group-write on
-          # files owned by www-data, so it can write content but can't
-          # chown/chmod/touch them to match the source. Ownership gets
-          # fixed up in the next step, so we don't ask rsync to preserve
-          # owner/perms/times here.
-          rsync -rlvzc --delete \
+          # deploy isn't the owner of the existing www-data-owned files,
+          # so it can't reliably delete/overwrite/chown/chmod them as
+          # itself. --rsync-path runs the remote-side rsync as root
+          # (via a narrowly-scoped NOPASSWD sudo rule) so it can freely
+          # write, delete, and set final ownership via --chown.
+          rsync -avz --delete \
+            --rsync-path="sudo rsync" \
+            --chown=www-data:www-data \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
             --exclude '*.db' \
@@ -79,11 +81,6 @@ jobs:
             --exclude '*.bak-*' \
             -e "ssh -i ~/.ssh/deploy_key" \
             publish/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:$DEPLOY_PATH/"
-
-      - name: Fix ownership
-        run: |
-          ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "sudo chown -R www-data:www-data '$DEPLOY_PATH'"
 
       - name: Start service
         run: |

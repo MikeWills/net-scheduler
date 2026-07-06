@@ -28,7 +28,7 @@ Then copy the contents of the `publish/` folder to the server (e.g. via WinSCP o
 
 ## Automated Deploy (GitHub Actions)
 
-`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB, stops the service, `rsync`s the publish output to `/opt/ncsscheduler/`, restores ownership to `www-data`, restarts the service, and polls `http://localhost:5106/` for a response before declaring success.
+`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB, stops the service, `rsync`s the publish output to `/opt/ncsscheduler/` (running as root remotely via `--rsync-path="sudo rsync"`, setting final ownership inline with `--chown=www-data:www-data`), restarts the service, and polls `http://localhost:5106/` for a response before declaring success.
 
 ### One-time setup
 
@@ -45,21 +45,22 @@ Then copy the contents of the `publish/` folder to the server (e.g. via WinSCP o
   If your ACLs restrict traffic between devices (not "accept all"), add a `grants`/`acls` rule permitting `tag:ci` → the server (port 22).
 
 **2. Deploy user + SSH key on the server**
+
+The `deploy` account doesn't need filesystem access to `/opt/ncsscheduler` itself — every operation that touches it (rsync, the DB backup, restarting the service) runs as root via a narrowly-scoped set of NOPASSWD sudo rules instead:
 ```bash
 sudo useradd -m -s /bin/bash deploy
-sudo usermod -aG www-data deploy
-sudo chmod -R g+w /opt/ncsscheduler
 
-# Restrict sudo to only the commands the workflow needs
 sudo tee /etc/sudoers.d/ncsscheduler-deploy > /dev/null <<'EOF'
 Defaults:deploy !requiretty
-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl stop ncsscheduler, /usr/bin/systemctl start ncsscheduler, /usr/bin/chown -R www-data\:www-data /opt/ncsscheduler, /usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *, /usr/bin/journalctl -u ncsscheduler *
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl stop ncsscheduler, /usr/bin/systemctl start ncsscheduler, /usr/bin/rsync *, /usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *, /usr/bin/journalctl -u ncsscheduler *
 EOF
 sudo chmod 0440 /etc/sudoers.d/ncsscheduler-deploy
 sudo visudo -c
 ```
 
 > `/etc/sudoers.d/` files **must** be mode `0440` — `tee` creates them with your default umask instead, so sudo silently ignores the file (and every sudo call falls back to demanding a password) until you `chmod` it. `visudo -c` will tell you if a file has the wrong permissions. The `!requiretty` line is defensive in case your server otherwise sets `Defaults requiretty` globally, which also breaks NOPASSWD sudo over a non-interactive SSH session.
+>
+> The `rsync *` rule is intentionally broad (any rsync invocation as root) rather than pinned to exact flags, since the flag string can shift between rsync versions/options. It's scoped to the `deploy` account, which is only reachable via the CI-only SSH key — not a general login.
 
 On your workstation, generate a dedicated deploy keypair and install the public half:
 ```bash
