@@ -75,6 +75,14 @@ ssh-copy-id -i deploy_key.pub deploy@<server-tailscale-hostname>
 
 The workflow also references a `production` GitHub Environment — create one (Settings → Environments) if you want required reviewers/approval before a deploy runs; otherwise remove the `environment: production` line from the workflow.
 
+**Workflow constants** — non-sensitive, so they're hardcoded in the `env:` block at the top of `deploy.yml` rather than stored as secrets. Edit them there directly if your setup differs:
+
+| Variable | Default | What it is |
+|---|---|---|
+| `DEPLOY_PATH` | `/opt/ncsscheduler` | Server directory the publish output is synced to |
+| `SERVICE_NAME` | `ncsscheduler` | systemd service stopped/started/journaled during deploy |
+| `APP_PORT` | `5106` | Local port the health check polls after restart |
+
 ### Triggering a deploy
 
 Push/merge to `master` as usual (this only builds via `dotnet.yml`), then cut a [GitHub Release](https://github.com/MikeWills/net-scheduler/releases/new) from that commit to trigger the actual deploy.
