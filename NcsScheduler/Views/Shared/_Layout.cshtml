@@ -1,3 +1,4 @@
+@using System.Reflection
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -144,9 +145,18 @@
         </main>
     </div>
 
+    @{
+        var appVersion = Assembly.GetEntryAssembly()?
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+    }
     <footer class="border-top footer text-muted mt-4">
         <div class="container">
             &copy; @DateTime.Now.Year - NCS Scheduler
+            @if (!string.IsNullOrEmpty(appVersion))
+            {
+                <span class="ms-2">@appVersion</span>
+            }
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

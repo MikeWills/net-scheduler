@@ -37,7 +37,7 @@ jobs:
         run: dotnet restore
 
       - name: Publish
-        run: dotnet publish NcsScheduler/NcsScheduler.csproj -c Release -o publish
+        run: dotnet publish NcsScheduler/NcsScheduler.csproj -c Release -o publish -p:InformationalVersion=${{ github.event.release.tag_name }}
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
