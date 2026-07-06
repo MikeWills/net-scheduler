@@ -26,6 +26,61 @@ Then copy the contents of the `publish/` folder to the server (e.g. via WinSCP o
 
 ---
 
+## Automated Deploy (GitHub Actions)
+
+`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB, stops the service, `rsync`s the publish output to `/opt/ncsscheduler/`, restores ownership to `www-data`, restarts the service, and polls `http://localhost:5106/` for a response before declaring success.
+
+### One-time setup
+
+**1. Tailscale OAuth client** (lets the runner join your tailnet as a temporary node)
+- Tailscale admin console → **Settings → OAuth clients** → Generate client
+- Scope: `Devices Core` write access
+- Tag it `tag:ci`
+- In your tailnet's ACL policy file, make sure the tag is defined and allowed to reach the server, e.g.:
+  ```jsonc
+  "tagOwners": {
+    "tag:ci": ["autogroup:admin"],
+  },
+  ```
+  If your ACLs restrict traffic between devices (not "accept all"), add a `grants`/`acls` rule permitting `tag:ci` → the server (port 22).
+
+**2. Deploy user + SSH key on the server**
+```bash
+sudo useradd -m -s /bin/bash deploy
+sudo usermod -aG www-data deploy
+sudo chmod -R g+w /opt/ncsscheduler
+
+# Restrict sudo to only the commands the workflow needs
+sudo tee /etc/sudoers.d/ncsscheduler-deploy <<'EOF'
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl stop ncsscheduler, /usr/bin/systemctl start ncsscheduler, /usr/bin/chown -R www-data\:www-data /opt/ncsscheduler, /usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *, /usr/bin/journalctl -u ncsscheduler *
+EOF
+sudo visudo -c
+```
+
+On your workstation, generate a dedicated deploy keypair and install the public half:
+```bash
+ssh-keygen -t ed25519 -f deploy_key -C "github-actions-deploy" -N ""
+ssh-copy-id -i deploy_key.pub deploy@<server-tailscale-hostname>
+```
+
+**3. GitHub repo secrets** (Settings → Secrets and variables → Actions)
+
+| Secret | Value |
+|---|---|
+| `TS_OAUTH_CLIENT_ID` | from step 1 |
+| `TS_OAUTH_SECRET` | from step 1 |
+| `SSH_PRIVATE_KEY` | contents of `deploy_key` (private half) from step 2 |
+| `DEPLOY_HOST` | server's Tailscale hostname, e.g. `ncs-server.tailnet.ts.net` |
+| `DEPLOY_USER` | `deploy` |
+
+The workflow also references a `production` GitHub Environment — create one (Settings → Environments) if you want required reviewers/approval before a deploy runs; otherwise remove the `environment: production` line from the workflow.
+
+### Triggering a deploy
+
+Push/merge to `master` as usual (this only builds via `dotnet.yml`), then cut a [GitHub Release](https://github.com/MikeWills/net-scheduler/releases/new) from that commit to trigger the actual deploy.
+
+---
+
 ## Environment Variables
 
 Sensitive and environment-specific config is set via environment variables in the systemd unit file rather than in config files:

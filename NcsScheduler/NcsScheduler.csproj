@@ -4,7 +4,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>3dba1f2e-3f43-4d52-ab37-54b3f44d70f5</UserSecretsId>
-    <Version>2026.0705.2135.94</Version>
   </PropertyGroup>
   <ItemGroup>
     <Content Update="appsettings.json" CopyToPublishDirectory="Never" />
@@ -26,8 +25,4 @@
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)deploy.ps1&quot;" />
   </Target>
   -->
-  <!-- Auto-versioning via PowerShell (Windows dev only; skipped on Linux/CI) -->
-  <Target Name="SetVersion" BeforeTargets="Build" Condition="'$(OS)' == 'Windows_NT' AND '$(SolutionDir)' != '' AND '$(SolutionDir)' != '*Undefined*'">
-    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(SolutionDir)SetVersion.ps1&quot;" />
-  </Target>
 </Project>
