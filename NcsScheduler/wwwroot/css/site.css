@@ -21,6 +21,341 @@ body {
   margin-bottom: 60px;
 }
 
+/* ================================================
+   Meter Panel theme — palette & type
+   Named after the front panel of a transceiver: warm
+   neutral surfaces, a needle-red / meter-amber accent
+   pair for status, and a slate-green "all clear" family
+   shared by primary/secondary/info/success roles.
+   Overrides Bootstrap's own CSS variables so every
+   bg-, text-, and border- utility, alert, and table already
+   in use re-themes automatically in both color modes.
+   ================================================ */
+:root,
+[data-bs-theme="light"] {
+  /* type */
+  --bs-font-sans-serif: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bs-font-monospace: "JetBrains Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* panel surfaces */
+  --bs-body-bg: #EDEAE1;
+  --bs-body-bg-rgb: 237, 234, 225;
+  --bs-body-color: #241F17;
+  --bs-body-color-rgb: 36, 31, 23;
+  --bs-emphasis-color: #14120E;
+  --bs-emphasis-color-rgb: 20, 18, 14;
+  --bs-secondary-color: rgba(36, 31, 23, .68);
+  --bs-secondary-color-rgb: 36, 31, 23;
+  --bs-secondary-bg: #E1DCCC;
+  --bs-secondary-bg-rgb: 225, 220, 204;
+  --bs-tertiary-bg: #E7E2D3;
+  --bs-tertiary-bg-rgb: 231, 226, 211;
+  --bs-border-color: #857F70;
+  --bs-border-color-translucent: rgba(36, 31, 23, .18);
+  --bs-link-color: #3E4A45;
+  --bs-link-color-rgb: 62, 74, 69;
+  --bs-link-hover-color: #2C3733;
+  --bs-link-hover-color-rgb: 44, 55, 51;
+
+  /* brand roles — amber is the "power on" accent for primary
+     actions, ink is reserved for dark/chrome surfaces (nav,
+     headers), slate-green is the neutral/all-clear family, and
+     red is reserved for danger/needed status only */
+  --bs-primary: #D99A2B;   --bs-primary-rgb: 217, 154, 43;
+  --bs-dark: #241F17;      --bs-dark-rgb: 36, 31, 23;
+  --bs-secondary: #3E4A45; --bs-secondary-rgb: 62, 74, 69;
+  --bs-info: #3E4A45;      --bs-info-rgb: 62, 74, 69;
+  --bs-success: #4C7A5B;   --bs-success-rgb: 76, 122, 91;
+  --bs-warning: #D99A2B;   --bs-warning-rgb: 217, 154, 43;
+  --bs-danger: #C0392B;    --bs-danger-rgb: 192, 57, 43;
+
+  --bs-primary-text-emphasis: #6B4A12;
+  --bs-secondary-text-emphasis: #3E4A45;
+  --bs-dark-text-emphasis: #3A352C;
+  --bs-success-text-emphasis: #2C4A38;
+  --bs-info-text-emphasis: #2C3E38;
+  --bs-warning-text-emphasis: #6B4A12;
+  --bs-danger-text-emphasis: #7A2A20;
+
+  --bs-success-bg-subtle: #DCE8DF;    --bs-success-border-subtle: #688572;
+  --bs-info-bg-subtle: #DEE5E1;       --bs-info-border-subtle: #71817A;
+  --bs-warning-bg-subtle: #F6E7C7;    --bs-warning-border-subtle: #9B7A3E;
+  --bs-danger-bg-subtle: #F3DCD6;     --bs-danger-border-subtle: #AC685D;
+
+  --bs-form-valid-color: var(--bs-success);
+  --bs-form-valid-border-color: var(--bs-success);
+  --bs-form-invalid-color: var(--bs-danger);
+  --bs-form-invalid-border-color: var(--bs-danger);
+}
+
+[data-bs-theme="dark"] {
+  /* backlit panel — ink deepens further, red/amber read
+     as a lit meter rather than a dimmed daylight color */
+  --bs-body-bg: #1E1B17;
+  --bs-body-bg-rgb: 30, 27, 23;
+  --bs-body-color: #EFE9DD;
+  --bs-body-color-rgb: 239, 233, 221;
+  --bs-emphasis-color: #FFFFFF;
+  --bs-emphasis-color-rgb: 255, 255, 255;
+  --bs-secondary-color: rgba(239, 233, 221, .68);
+  --bs-secondary-color-rgb: 239, 233, 221;
+  --bs-secondary-bg: #2A251E;
+  --bs-secondary-bg-rgb: 42, 37, 30;
+  --bs-tertiary-bg: #262119;
+  --bs-tertiary-bg-rgb: 38, 33, 25;
+  --bs-border-color: #706A60;
+  --bs-border-color-translucent: rgba(239, 233, 221, .16);
+  --bs-link-color: #7FA08E;
+  --bs-link-color-rgb: 127, 160, 142;
+  --bs-link-hover-color: #9FBBAC;
+  --bs-link-hover-color-rgb: 159, 187, 172;
+
+  --bs-primary: #D99A2B;   --bs-primary-rgb: 217, 154, 43;
+  --bs-dark: #14120E;      --bs-dark-rgb: 20, 18, 14;
+  --bs-secondary: #3E4A45; --bs-secondary-rgb: 62, 74, 69;
+  --bs-info: #3E4A45;      --bs-info-rgb: 62, 74, 69;
+  --bs-success: #4C7A5B;   --bs-success-rgb: 76, 122, 91;
+  --bs-warning: #D99A2B;   --bs-warning-rgb: 217, 154, 43;
+  --bs-danger: #C0392B;    --bs-danger-rgb: 192, 57, 43;
+
+  --bs-primary-text-emphasis: #F2B056;
+  --bs-secondary-text-emphasis: #9FB3A8;
+  --bs-dark-text-emphasis: #C9C2B4;
+  --bs-success-text-emphasis: #8FCBA3;
+  --bs-info-text-emphasis: #8FCBA3;
+  --bs-warning-text-emphasis: #F2B056;
+  --bs-danger-text-emphasis: #FF8578;
+
+  --bs-success-bg-subtle: #16241B;    --bs-success-border-subtle: #51785F;
+  --bs-info-bg-subtle: #1A2620;       --bs-info-border-subtle: #567963;
+  --bs-warning-bg-subtle: #2E2412;    --bs-warning-border-subtle: #946E38;
+  --bs-danger-bg-subtle: #2E1714;     --bs-danger-border-subtle: #A9564C;
+
+  --bs-form-valid-color: var(--bs-success);
+  --bs-form-valid-border-color: var(--bs-success);
+  --bs-form-invalid-color: var(--bs-danger);
+  --bs-form-invalid-border-color: var(--bs-danger);
+}
+
+h1, h2, h3, h4, h5, h6,
+.navbar-brand, .card-header, .day-header-text {
+  font-family: "Barlow Condensed", var(--bs-font-sans-serif);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+/* Small pill readout for inline status — the app's one
+   signature element, standing in for plain colored text
+   or badges wherever a slot's state needs a quick glance. */
+.meter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-family: var(--bs-font-monospace);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: .15rem .55rem;
+  border-radius: 3px;
+  border: 1px solid var(--meter-pill-border, var(--bs-border-color));
+  background: var(--meter-pill-bg);
+  color: var(--meter-pill-fg);
+  white-space: nowrap;
+}
+.meter-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+.meter-pill.needed {
+  --meter-pill-bg: var(--bs-danger-bg-subtle);
+  --meter-pill-fg: var(--bs-danger-text-emphasis);
+  --meter-pill-border: var(--bs-danger-border-subtle);
+}
+.meter-pill.pending {
+  --meter-pill-bg: var(--bs-warning-bg-subtle);
+  --meter-pill-fg: var(--bs-warning-text-emphasis);
+  --meter-pill-border: var(--bs-warning-border-subtle);
+}
+
+/* Buttons bake their colors in as literal hex per variant rather than
+   reading the root custom properties above, so each variant actually
+   used in the app is re-declared here against the same brand tokens. */
+.btn-primary {
+  --bs-btn-color: #000;
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: #000;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary) 85%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-primary) 85%, white);
+  --bs-btn-active-color: #000;
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-primary) 80%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-primary) 80%, black);
+  --bs-btn-disabled-color: #000;
+  --bs-btn-disabled-bg: var(--bs-primary);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary-text-emphasis);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-color: #000;
+  --bs-btn-hover-bg: var(--bs-primary);
+  --bs-btn-hover-border-color: var(--bs-primary);
+  --bs-btn-active-color: #000;
+  --bs-btn-active-bg: var(--bs-primary);
+  --bs-btn-active-border-color: var(--bs-primary);
+  --bs-btn-disabled-color: var(--bs-primary-text-emphasis);
+  --bs-btn-disabled-border-color: var(--bs-primary);
+}
+
+.btn-dark {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bs-dark);
+  --bs-btn-border-color: var(--bs-dark);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-dark) 85%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-dark) 85%, white);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-dark) 80%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-dark) 80%, black);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bs-dark);
+  --bs-btn-disabled-border-color: var(--bs-dark);
+}
+.btn-outline-dark {
+  --bs-btn-color: var(--bs-dark-text-emphasis);
+  --bs-btn-border-color: var(--bs-dark);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bs-dark);
+  --bs-btn-hover-border-color: var(--bs-dark);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bs-dark);
+  --bs-btn-active-border-color: var(--bs-dark);
+  --bs-btn-disabled-color: var(--bs-dark-text-emphasis);
+  --bs-btn-disabled-border-color: var(--bs-dark);
+}
+
+.btn-secondary, .btn-info {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bs-secondary);
+  --bs-btn-border-color: var(--bs-secondary);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-secondary) 85%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-secondary) 85%, white);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-secondary) 80%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-secondary) 80%, black);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bs-secondary);
+  --bs-btn-disabled-border-color: var(--bs-secondary);
+}
+.btn-outline-secondary, .btn-outline-info {
+  --bs-btn-color: var(--bs-secondary-text-emphasis);
+  --bs-btn-border-color: var(--bs-secondary);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bs-secondary);
+  --bs-btn-hover-border-color: var(--bs-secondary);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bs-secondary);
+  --bs-btn-active-border-color: var(--bs-secondary);
+  --bs-btn-disabled-color: var(--bs-secondary-text-emphasis);
+  --bs-btn-disabled-border-color: var(--bs-secondary);
+}
+
+.btn-success {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bs-success);
+  --bs-btn-border-color: var(--bs-success);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-success) 85%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-success) 85%, white);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-success) 80%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-success) 80%, black);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bs-success);
+  --bs-btn-disabled-border-color: var(--bs-success);
+}
+.btn-outline-success {
+  --bs-btn-color: var(--bs-success-text-emphasis);
+  --bs-btn-border-color: var(--bs-success);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bs-success);
+  --bs-btn-hover-border-color: var(--bs-success);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bs-success);
+  --bs-btn-active-border-color: var(--bs-success);
+  --bs-btn-disabled-color: var(--bs-success-text-emphasis);
+  --bs-btn-disabled-border-color: var(--bs-success);
+}
+
+.btn-warning {
+  --bs-btn-color: #000;
+  --bs-btn-bg: var(--bs-warning);
+  --bs-btn-border-color: var(--bs-warning);
+  --bs-btn-hover-color: #000;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-warning) 85%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-warning) 85%, white);
+  --bs-btn-active-color: #000;
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-warning) 80%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-warning) 80%, black);
+  --bs-btn-disabled-color: #000;
+  --bs-btn-disabled-bg: var(--bs-warning);
+  --bs-btn-disabled-border-color: var(--bs-warning);
+}
+.btn-outline-warning {
+  --bs-btn-color: var(--bs-warning-text-emphasis);
+  --bs-btn-border-color: var(--bs-warning);
+  --bs-btn-hover-color: #000;
+  --bs-btn-hover-bg: var(--bs-warning);
+  --bs-btn-hover-border-color: var(--bs-warning);
+  --bs-btn-active-color: #000;
+  --bs-btn-active-bg: var(--bs-warning);
+  --bs-btn-active-border-color: var(--bs-warning);
+  --bs-btn-disabled-color: var(--bs-warning-text-emphasis);
+  --bs-btn-disabled-border-color: var(--bs-warning);
+}
+
+.btn-danger {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bs-danger);
+  --bs-btn-border-color: var(--bs-danger);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: color-mix(in srgb, var(--bs-danger) 85%, white);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--bs-danger) 85%, white);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: color-mix(in srgb, var(--bs-danger) 80%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--bs-danger) 80%, black);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bs-danger);
+  --bs-btn-disabled-border-color: var(--bs-danger);
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--bs-danger-text-emphasis);
+  --bs-btn-border-color: var(--bs-danger);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bs-danger);
+  --bs-btn-hover-border-color: var(--bs-danger);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bs-danger);
+  --bs-btn-active-border-color: var(--bs-danger);
+  --bs-btn-disabled-color: var(--bs-danger-text-emphasis);
+  --bs-btn-disabled-border-color: var(--bs-danger);
+}
+
+.btn-outline-light {
+  --bs-btn-color: #fff;
+  --bs-btn-border-color: rgba(255, 255, 255, .5);
+  --bs-btn-hover-color: var(--bs-dark);
+  --bs-btn-hover-bg: #fff;
+  --bs-btn-hover-border-color: #fff;
+  --bs-btn-active-color: var(--bs-dark);
+  --bs-btn-active-bg: #fff;
+  --bs-btn-active-border-color: #fff;
+}
+
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
@@ -40,19 +375,19 @@ body {
 
 /* Open slot — needs NCS */
 .slot-open {
-  background-color: rgba(220, 53, 69, 0.12);
-  border-left: 3px solid #dc3545;
+  background-color: rgba(var(--bs-danger-rgb), 0.12);
+  border-left: 3px solid var(--bs-danger);
 }
 
 .slot-open .slot-label {
-  color: #dc3545;
+  color: var(--bs-danger-text-emphasis);
   font-weight: 600;
 }
 
 /* Slot with a volunteer pending confirmation */
 .slot-volunteer {
-  background-color: rgba(255, 193, 7, 0.15);
-  border-left: 3px solid #ffc107;
+  background-color: rgba(var(--bs-warning-rgb), 0.15);
+  border-left: 3px solid var(--bs-warning);
 }
 
 .slot-volunteer .slot-label {
@@ -79,7 +414,7 @@ body {
 
 /* Callsign text in slot */
 .slot-callsign {
-  font-family: monospace;
+  font-family: var(--bs-font-monospace);
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -91,7 +426,7 @@ body {
 
 /* Dashboard open-slot cards */
 .open-slot-card {
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid var(--bs-danger);
 }
 
 /* ================================================

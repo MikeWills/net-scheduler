@@ -87,11 +87,11 @@
                                 <div class="text-end flex-shrink-0">
                                     @if (slot.NeedsNcs && !slot.HasVolunteer)
                                     {
-                                        <span class="fw-bold text-danger small">NCS Needed</span>
+                                        <span class="meter-pill needed"><span class="dot"></span>NCS Needed</span>
                                     }
                                     else if (slot.HasVolunteer)
                                     {
-                                        <span class="fw-bold text-warning small">Volunteer Pending</span>
+                                        <span class="meter-pill pending"><span class="dot"></span>Volunteer Pending</span>
                                     }
                                     else if (slot.CopyPasteFormat is not null)
                                     {
@@ -142,11 +142,11 @@
                                     <td>
                                         @if (slot.NeedsNcs && !slot.HasVolunteer)
                                         {
-                                            <span class="fw-bold text-danger">NCS Needed</span>
+                                            <span class="meter-pill needed"><span class="dot"></span>NCS Needed</span>
                                         }
                                         else if (slot.HasVolunteer)
                                         {
-                                            <span class="fw-bold text-warning">Volunteer Pending</span>
+                                            <span class="meter-pill pending"><span class="dot"></span>Volunteer Pending</span>
                                         }
                                         else if (slot.CopyPasteFormat is not null)
                                         {
@@ -201,15 +201,15 @@
 @section Scripts {
 <style>
     .day-header {
-        background-color: #212529;
+        background-color: var(--bs-dark);
         color: #fff;
         font-size: 1rem;
     }
     .slot-open  { background-color: var(--bs-danger-bg-subtle) !important; }
     .slot-volunteer { background-color: var(--bs-warning-bg-subtle) !important; }
     .slot-normal    { background-color: inherit; }
-    .slot-open-badge      { background-color: #dc3545 !important; }
-    .slot-volunteer-badge { background-color: #ffc107 !important; color: #000 !important; }
+    .slot-open-badge      { background-color: var(--bs-danger) !important; }
+    .slot-volunteer-badge { background-color: var(--bs-warning) !important; color: #000 !important; }
 
     /* Mobile card list separators */
     .schedule-card-list > .schedule-card {
