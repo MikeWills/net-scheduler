@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NcsScheduler.Helpers;
 
 namespace NcsScheduler.Models.ViewModels;
 
@@ -47,7 +48,7 @@ public class UnavailabilityCreateViewModel : IValidatableObject
         if (EndDate < StartDate)
             yield return new ValidationResult("End Date must be on or after Start Date.", [nameof(EndDate)]);
 
-        if (StartDate < DateOnly.FromDateTime(DateTime.UtcNow))
+        if (StartDate < DateConverter.TodayEastern())
             yield return new ValidationResult("Start Date cannot be in the past.", [nameof(StartDate)]);
     }
 }
