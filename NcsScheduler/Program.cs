@@ -44,6 +44,7 @@ builder.Services.AddAuthorization(options =>
 // ── App Services ──────────────────────────────────────────────────────────────
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<NotificationSettings>(builder.Configuration.GetSection("Notifications"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<IHolidayService, HolidayService>();

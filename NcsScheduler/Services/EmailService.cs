@@ -10,11 +10,13 @@ namespace NcsScheduler.Services;
 public class EmailService : IEmailService
 {
     private readonly EmailSettings _settings;
+    private readonly NotificationSettings _notificationSettings;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
+    public EmailService(IOptions<EmailSettings> settings, IOptions<NotificationSettings> notificationSettings, ILogger<EmailService> logger)
     {
         _settings = settings.Value;
+        _notificationSettings = notificationSettings.Value;
         _logger = logger;
     }
 
@@ -40,6 +42,20 @@ public class EmailService : IEmailService
             <p>Please log in to NCS Scheduler to assign a substitute.</p>
             """;
         await SendAsync(coordinator.Email, coordinator.Name, subject, body);
+    }
+
+    public async Task SendSlotOpenedToListAsync(NetSession session, NetController unavailableController)
+    {
+        if (!_notificationSettings.EnableMailingListNotifications) return;
+        if (string.IsNullOrWhiteSpace(_notificationSettings.MailingListAddress)) return;
+
+        var localDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
+        var subject = $"Open slot: {session.Net?.Name} on {localDate}";
+        var body = $"""
+            <p>{unavailableController.Callsign} is unavailable for the {session.Net?.Name} on {localDate:dddd, MMMM d, yyyy}.</p>
+            <p>This slot needs a substitute. Please log in to NCS Scheduler to volunteer or assign a replacement.</p>
+            """;
+        await SendAsync(_notificationSettings.MailingListAddress, "NCS List", subject, body);
     }
 
     public async Task SendVolunteerNotificationAsync(NetController coordinator, NetSession session, NetController volunteer)

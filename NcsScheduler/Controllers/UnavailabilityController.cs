@@ -198,6 +198,8 @@ public class UnavailabilityController : Controller
 
             if (coord?.NotifyOnSlotOpened == true)
                 await _emailService.SendSlotOpenedAsync(coord, session, controller);
+
+            await _emailService.SendSlotOpenedToListAsync(session, controller);
         }
     }
 }
