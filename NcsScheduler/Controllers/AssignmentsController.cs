@@ -223,6 +223,12 @@ public class AssignmentsController : Controller
             Status = AssignmentStatus.Confirmed,
             AssignedByUserId = _userManager.GetUserId(User)
         });
+
+        // Slot is filled now -- clear any manual "force open" flag so it stops
+        // lingering in the force-marked-open list.
+        if (session.IsForcedOpen)
+            session.IsForcedOpen = false;
+
         await _db.SaveChangesAsync();
 
         if (controller.NotifyOnAssigned)
@@ -331,6 +337,12 @@ public class AssignmentsController : Controller
             Status = AssignmentStatus.Confirmed,
             AssignedByUserId = _userManager.GetUserId(User)
         });
+
+        // Slot is filled now -- clear any manual "force open" flag so it stops
+        // lingering in the force-marked-open list.
+        if (session.IsForcedOpen)
+            session.IsForcedOpen = false;
+
         await _db.SaveChangesAsync();
 
         // Attach net for email (already in memory)
