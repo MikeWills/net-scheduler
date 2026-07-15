@@ -62,7 +62,101 @@
     }
     else
     {
-        <div class="table-responsive">
+        @* Mobile: day-grouped card list (hidden md+) *@
+        <div class="d-md-none cal-card-list">
+            @for (int i = 0; i < 7; i++)
+            {
+                var day = days[i];
+                var dayRows = Model.Rows.Where(r => r.Cells[i] is not null).ToList();
+                if (dayRows.Any())
+                {
+                    <div class="cal-day-group">
+                        <div class="cal-day-header px-3 py-2">
+                            @day.ToString("dddd, MMM d")
+                        </div>
+                        @foreach (var row in dayRows)
+                        {
+                            var cell = row.Cells[i]!;
+                            var rowBand = string.IsNullOrWhiteSpace(row.Net.Band) ? "Other" : row.Net.Band;
+                            string rowClass = "cal-net-row px-3 py-2";
+                            if (cell.IsChanged) rowClass += " cell-changed";
+                            else if (cell.NeedsNcs && !cell.HasVolunteer) rowClass += " cell-open";
+
+                            <div class="@rowClass" data-band="@rowBand">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div class="fw-semibold">@row.Net.Name</div>
+                                        <div class="text-muted small font-monospace">@row.Net.ScheduledTimeUtc.ToString("HH:mm")z</div>
+                                    </div>
+                                    <div class="text-end">
+                                        @if (cell.NeedsNcs && !cell.HasVolunteer)
+                                        {
+                                            <span class="badge bg-danger">NCS Needed</span>
+                                            if (!string.IsNullOrEmpty(cell.Callsign))
+                                            {
+                                                <div class="small text-muted mt-1">(@cell.Callsign out)</div>
+                                            }
+                                        }
+                                        else if (cell.HasVolunteer)
+                                        {
+                                            <span class="badge bg-warning text-dark">Volunteer</span>
+                                            <div class="font-monospace small mt-1">@cell.CopyPasteFormat</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
+                                            @if (cell.AssignmentType == AssignmentType.Substitute)
+                                            {
+                                                <div><span class="badge bg-info text-dark mt-1">sub</span></div>
+                                            }
+                                            <div class="small text-muted mt-1">
+                                                @if (cell.StandingNetNames.Any())
+                                                {
+                                                    <text>Regularly runs: @string.Join(", ", cell.StandingNetNames)<br /></text>
+                                                }
+                                                @(cell.LastScheduledDate.HasValue
+                                                    ? "Last ran: " + cell.LastScheduledDate.Value.ToString("MMM d, yyyy")
+                                                    : "Last ran: not in past 90 days")
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                @if (cell.BackupRequested)
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-warning text-dark" title="Backup requested">&#9888; Backup</span>
+                                        @if (cell.BackupCallsigns.Any())
+                                        {
+                                            <span class="small text-muted ms-1">@string.Join(", ", cell.BackupCallsigns)</span>
+                                        }
+                                    </div>
+                                }
+                                @if (cell.IsChanged)
+                                {
+                                    <div class="change-note mt-1">
+                                        @if (cell.PrevNeedsNcs)
+                                        {
+                                            <span>was: <em>open</em></span>
+                                        }
+                                        else if (!string.IsNullOrEmpty(cell.PrevCallsign))
+                                        {
+                                            <span>was: @cell.PrevCallsign</span>
+                                        }
+                                        else
+                                        {
+                                            <span>was: <em>unassigned</em></span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        @* Desktop: grid table (hidden below md) *@
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-bordered bc-calendar align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
@@ -262,6 +356,29 @@
             font-style: italic;
         }
 
+        /* Mobile day-grouped card list */
+        .cal-card-list {
+            border-top: 1px solid var(--bs-border-color);
+        }
+        .cal-day-group {
+            border-bottom: 1px solid var(--bs-border-color);
+        }
+        .cal-day-group:last-child {
+            border-bottom: 0;
+        }
+        .cal-day-header {
+            background-color: #212529;
+            color: #fff;
+            font-weight: 600;
+            font-size: .85rem;
+        }
+        [data-bs-theme="dark"] .cal-day-header {
+            background-color: var(--bs-secondary-bg);
+        }
+        .cal-net-row + .cal-net-row {
+            border-top: 1px solid var(--bs-border-color-translucent);
+        }
+
         /* Legend swatches */
         .legend-swatch {
             display: inline-block;
@@ -305,6 +422,18 @@
                     var filter = this.dataset.bandFilter;
                     document.querySelectorAll('tbody tr[data-band]').forEach(function (row) {
                         row.style.display = (filter === 'all' || row.dataset.band === filter) ? '' : 'none';
+                    });
+                    document.querySelectorAll('.cal-net-row[data-band]').forEach(function (row) {
+                        row.style.display = (filter === 'all' || row.dataset.band === filter) ? '' : 'none';
+                    });
+
+                    // Hide mobile day-group cards left with no visible nets after filtering.
+                    document.querySelectorAll('.cal-day-group').forEach(function (group) {
+                        var anyVisible = Array.prototype.some.call(
+                            group.querySelectorAll('.cal-net-row'),
+                            function (row) { return row.style.display !== 'none'; }
+                        );
+                        group.style.display = anyVisible ? '' : 'none';
                     });
                 });
             });
