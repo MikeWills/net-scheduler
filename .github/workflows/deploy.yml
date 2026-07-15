@@ -91,7 +91,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" "
             for i in \$(seq 1 15); do
-              code=\$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$APP_PORT/ || echo 000)
+              code=\$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$APP_PORT/)
               if [ \"\$code\" != \"000\" ]; then
                 echo \"App responded with HTTP \$code\"
                 exit 0
