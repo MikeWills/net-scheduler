@@ -28,7 +28,7 @@ Then copy the contents of the `publish/` folder to the server (e.g. via WinSCP o
 
 ## Automated Deploy (GitHub Actions)
 
-`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB, stops the service, `rsync`s the publish output to `/opt/ncsscheduler/` (running as root remotely via `--rsync-path="sudo rsync"`, setting final ownership inline with `--chown=www-data:www-data`), restarts the service, and polls `http://localhost:5106/` for a response before declaring success.
+`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB, stops the service, `rsync`s the publish output to `/opt/ncsscheduler/` (running as root remotely via `--rsync-path="sudo rsync"`, setting final ownership inline with `--chown=www-data:www-data`), restarts the service, and polls `http://localhost:5000/` (the production port) for a response before declaring success.
 
 ### One-time setup
 
@@ -86,7 +86,7 @@ The workflow also references a `production` GitHub Environment — create one (S
 |---|---|---|
 | `DEPLOY_PATH` | `/opt/ncsscheduler` | Server directory the publish output is synced to |
 | `SERVICE_NAME` | `ncsscheduler` | systemd service stopped/started/journaled during deploy |
-| `APP_PORT` | `5106` | Local port the health check polls after restart |
+| `APP_PORT` | `5000` | Local port the health check polls after restart — must match `ASPNETCORE_URLS` in the systemd unit, not the 5106 dev-time port from `launchSettings.json` |
 
 ### Triggering a deploy
 
@@ -132,6 +132,10 @@ Restart=always
 RestartSec=10
 User=www-data
 Environment=ASPNETCORE_ENVIRONMENT=Production
+# Without this, Kestrel falls back to its own default (port 5000, but don't
+# rely on that) rather than the port Apache/the deploy health check expect --
+# set it explicitly so the real listening port is never in question.
+Environment=ASPNETCORE_URLS=http://localhost:5000
 Environment=App__BaseUrl=https://ncs.example.com
 Environment="ConnectionStrings__DefaultConnection=Data Source=/opt/ncsscheduler/ncsscheduler.db"
 Environment=Email__Username=your-smtp-username
@@ -157,8 +161,8 @@ sudo systemctl status ncsscheduler
     ServerName ncs.example.com
 
     ProxyPreserveHost On
-    ProxyPass / http://localhost:5106/
-    ProxyPassReverse / http://localhost:5106/
+    ProxyPass / http://localhost:5000/
+    ProxyPassReverse / http://localhost:5000/
 
     SSLEngine on
     # ... Let's Encrypt cert paths

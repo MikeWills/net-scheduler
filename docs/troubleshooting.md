@@ -115,8 +115,10 @@ The app isn't running or isn't listening on the expected port. Check:
 
 ```bash
 sudo systemctl status ncsscheduler
-sudo ss -tlnp | grep 5106
+sudo ss -tlnp | grep dotnet
 ```
+
+Check that the port shown matches `ASPNETCORE_URLS` in the systemd unit (`systemctl cat ncsscheduler`) and what Apache actually proxies to (`grep -i proxypass /etc/apache2/sites-enabled/*.conf`) — don't assume it's 5106, that's only the dev-time port from `launchSettings.json` and doesn't apply when systemd runs the published DLL directly.
 
 ### Redirects loop or produce wrong URLs
 

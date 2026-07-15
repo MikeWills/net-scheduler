@@ -81,7 +81,7 @@ git push origin v2.2
 gh release create v2.2 --title "v2.2" --notes "..."
 ```
 
-Watch the deploy with `gh run list --workflow=deploy.yml` / `gh run view <id>`. The job builds, joins the server's Tailscale network, backs up the SQLite DB, stops the service, rsyncs the publish output, restarts the service, and health-checks `http://localhost:5106/`.
+Watch the deploy with `gh run list --workflow=deploy.yml` / `gh run view <id>`. The job builds, joins the server's Tailscale network, backs up the SQLite DB, stops the service, rsyncs the publish output, restarts the service, and health-checks `http://localhost:5000/` — the production port set by `ASPNETCORE_URLS` in the systemd unit. Note this is **not** 5106; that's only the dev-time port from `launchSettings.json`, which doesn't apply when systemd runs the published DLL directly.
 
 - Manual fallback (bypasses the pipeline entirely): `dotnet publish NcsScheduler/NcsScheduler.csproj -c Release -o publish`, then copy `publish/` to the server via WinSCP or the Visual Studio FolderProfile.
 
