@@ -18,7 +18,10 @@ on:
 env:
   DEPLOY_PATH: /opt/ncsscheduler
   SERVICE_NAME: ncsscheduler
-  APP_PORT: 5106
+  # Must match ASPNETCORE_URLS in the systemd unit -- 5106 is only the
+  # dev-time port from launchSettings.json, which doesn't apply when
+  # systemd runs the published DLL directly instead of `dotnet run`.
+  APP_PORT: 5000
 
 jobs:
   deploy:
