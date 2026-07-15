@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="NcsScheduler.Tests/NcsScheduler.Tests.csproj" />
   <Project Path="NcsScheduler/NcsScheduler.csproj" />
 </Solution>
