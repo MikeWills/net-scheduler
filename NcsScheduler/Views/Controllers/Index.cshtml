@@ -13,93 +13,193 @@
         }
     </div>
 
-    <table class="table table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>Callsign</th>
-                <th>Member #</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Account</th>
-                <th>Status</th>
-                @if (User.IsInRole("SuperAdmin"))
-                {
-                    <th></th>
-                }
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var nc in Model)
-            {
-                <tr class="@(nc.IsActive ? "" : "table-secondary text-muted")">
-                    <td class="fw-bold font-monospace">@nc.Callsign</td>
-                    <td>@nc.MemberNumber</td>
-                    <td>@nc.Name</td>
-                    <td>
-                        @if (!string.IsNullOrEmpty(nc.Email))
-                        {
-                            <a href="mailto:@nc.Email">@nc.Email</a>
-                        }
-                    </td>
-                    <td>@nc.Phone</td>
-                    <td>
-                        @if (nc.UserId is not null)
-                        {
-                            <span class="badge bg-success">Has account</span>
-                        }
-                        else if (string.IsNullOrEmpty(nc.Email))
-                        {
-                            <span class="badge bg-warning text-dark" title="Add an email address to send an invite">No email</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">No account</span>
-                        }
-                    </td>
-                    <td>
-                        @if (nc.IsActive)
-                        {
-                            <span class="badge bg-success">Active</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">Inactive</span>
-                        }
-                    </td>
-                    @if (User.IsInRole("SuperAdmin"))
-                    {
-                        <td class="text-nowrap">
-                            <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
-                            @if (nc.UserId is null && nc.IsActive && !string.IsNullOrEmpty(nc.Email))
-                            {
-                                <form asp-controller="Invitation" asp-action="SendToController" method="post" class="d-inline me-1">
-                                    <input type="hidden" name="id" value="@nc.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-primary"
-                                            onclick="return confirm('Send invite to @nc.Email?')">Send Invite</button>
-                                </form>
-                            }
+    @* Mobile: card list (hidden md+) *@
+    <div class="d-md-none border rounded">
+        @foreach (var nc in Model)
+        {
+            <div class="border-bottom px-3 py-3 @(nc.IsActive ? "" : "text-muted")">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="flex-grow-1" style="min-width:0">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-bold font-monospace">@nc.Callsign</span>
                             @if (nc.IsActive)
                             {
-                                <form asp-action="SetActive" method="post" class="d-inline">
-                                    <input type="hidden" name="id" value="@nc.Id" />
-                                    <input type="hidden" name="active" value="false" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('Deactivate @nc.Callsign?')">Deactivate</button>
-                                </form>
+                                <span class="badge bg-success">Active</span>
                             }
                             else
                             {
-                                <form asp-action="SetActive" method="post" class="d-inline">
-                                    <input type="hidden" name="id" value="@nc.Id" />
-                                    <input type="hidden" name="active" value="true" />
-                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
-                                </form>
+                                <span class="badge bg-danger">Inactive</span>
                             }
-                        </td>
+                        </div>
+                        <div class="mt-1">@nc.Name</div>
+                        <div class="small text-muted mt-1">
+                            @{
+                                bool hasMember = !string.IsNullOrEmpty(nc.MemberNumber);
+                                bool hasEmail = !string.IsNullOrEmpty(nc.Email);
+                                bool hasPhone = !string.IsNullOrEmpty(nc.Phone);
+                            }
+                            @if (hasMember)
+                            {
+                                <span>#@nc.MemberNumber</span>
+                            }
+                            @if (hasEmail)
+                            {
+                                if (hasMember)
+                                {
+                                    <span class="mx-1">·</span>
+                                }
+                                <a href="mailto:@nc.Email">@nc.Email</a>
+                            }
+                            @if (hasPhone)
+                            {
+                                if (hasMember || hasEmail)
+                                {
+                                    <span class="mx-1">·</span>
+                                }
+                                <span>@nc.Phone</span>
+                            }
+                        </div>
+                        <div class="mt-1">
+                            @if (nc.UserId is not null)
+                            {
+                                <span class="badge bg-success">Has account</span>
+                            }
+                            else if (string.IsNullOrEmpty(nc.Email))
+                            {
+                                <span class="badge bg-warning text-dark" title="Add an email address to send an invite">No email</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No account</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                @if (User.IsInRole("SuperAdmin"))
+                {
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        @if (nc.UserId is null && nc.IsActive && !string.IsNullOrEmpty(nc.Email))
+                        {
+                            <form asp-controller="Invitation" asp-action="SendToController" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@nc.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary"
+                                        onclick="return confirm('Send invite to @nc.Email?')">Send Invite</button>
+                            </form>
+                        }
+                        @if (nc.IsActive)
+                        {
+                            <form asp-action="SetActive" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@nc.Id" />
+                                <input type="hidden" name="active" value="false" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Deactivate @nc.Callsign?')">Deactivate</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="SetActive" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@nc.Id" />
+                                <input type="hidden" name="active" value="true" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* Desktop: table (hidden below md) *@
+    <div class="d-none d-md-block table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Callsign</th>
+                    <th>Member #</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Account</th>
+                    <th>Status</th>
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <th></th>
                     }
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var nc in Model)
+                {
+                    <tr class="@(nc.IsActive ? "" : "table-secondary text-muted")">
+                        <td class="fw-bold font-monospace">@nc.Callsign</td>
+                        <td>@nc.MemberNumber</td>
+                        <td>@nc.Name</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(nc.Email))
+                            {
+                                <a href="mailto:@nc.Email">@nc.Email</a>
+                            }
+                        </td>
+                        <td>@nc.Phone</td>
+                        <td>
+                            @if (nc.UserId is not null)
+                            {
+                                <span class="badge bg-success">Has account</span>
+                            }
+                            else if (string.IsNullOrEmpty(nc.Email))
+                            {
+                                <span class="badge bg-warning text-dark" title="Add an email address to send an invite">No email</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">No account</span>
+                            }
+                        </td>
+                        <td>
+                            @if (nc.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Inactive</span>
+                            }
+                        </td>
+                        @if (User.IsInRole("SuperAdmin"))
+                        {
+                            <td class="text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@nc.Id" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                                @if (nc.UserId is null && nc.IsActive && !string.IsNullOrEmpty(nc.Email))
+                                {
+                                    <form asp-controller="Invitation" asp-action="SendToController" method="post" class="d-inline me-1">
+                                        <input type="hidden" name="id" value="@nc.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary"
+                                                onclick="return confirm('Send invite to @nc.Email?')">Send Invite</button>
+                                    </form>
+                                }
+                                @if (nc.IsActive)
+                                {
+                                    <form asp-action="SetActive" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@nc.Id" />
+                                        <input type="hidden" name="active" value="false" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Deactivate @nc.Callsign?')">Deactivate</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="SetActive" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@nc.Id" />
+                                        <input type="hidden" name="active" value="true" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                    </form>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>

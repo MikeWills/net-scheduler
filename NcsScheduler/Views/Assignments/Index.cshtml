@@ -50,7 +50,7 @@
     <div class="row g-4 align-items-start">
 
         @* ── LEFT COLUMN ──────────────────────────────────────────────────────── *@
-        <div class="col-12 col-xl-6 d-flex flex-column gap-4">
+        <div class="col-12 col-xl-6 d-flex flex-column gap-4" style="min-width:0">
 
             @* ── Section 2a: Assign Sub for Any Date ──────────────────────────── *@
             <div class="card border-0 shadow-sm">
@@ -185,7 +185,53 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        @* Mobile: day-grouped card list (hidden md+) *@
+                        <div class="d-md-none sched-card-list">
+                            @foreach (var day in days)
+                            {
+                                var dayNets = scheduledNets.Where(net => ruleSet.Contains((net.Id, day))).ToList();
+                                if (dayNets.Any())
+                                {
+                                    <div class="sched-day-group">
+                                        <div class="sched-day-header px-3 py-2">@day</div>
+                                        @foreach (var net in dayNets)
+                                        {
+                                            standingMap.TryGetValue((net.Id, day), out var current);
+                                            var netBand = string.IsNullOrWhiteSpace(net.Band) ? "Other" : net.Band;
+                                            <div class="sched-net-row px-3 py-2 net-col" data-band="@netBand">
+                                                <div class="small fw-semibold mb-1">
+                                                    @net.Name
+                                                    <span class="fw-normal text-muted">@net.ScheduledTimeUtc.ToString("HH:mm")z</span>
+                                                </div>
+                                                <form asp-action="SetStanding" method="post" class="d-flex gap-1 align-items-center">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="netId" value="@net.Id" />
+                                                    <input type="hidden" name="dayOfWeek" value="@((int)day)" />
+                                                    <select name="netControllerId" class="form-select form-select-sm flex-grow-1 nc-select">
+                                                        <option value="0">— Unassigned —</option>
+                                                        @foreach (var nc in controllers)
+                                                        {
+                                                            if (current?.NetControllerId == nc.Id)
+                                                            {
+                                                                <option value="@nc.Id" selected>@nc.Callsign – @nc.Name</option>
+                                                            }
+                                                            else
+                                                            {
+                                                                <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                                                            }
+                                                        }
+                                                    </select>
+                                                    <button type="submit" class="btn btn-sm btn-primary px-2">Save</button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        @* Desktop: grid table (hidden below md) *@
+                        <div class="d-none d-md-block table-responsive">
                             <table class="table table-bordered mb-0 align-middle">
                                 <thead class="sched-head">
                                     <tr>
@@ -255,7 +301,7 @@
         </div>@* /LEFT COLUMN *@
 
         @* ── RIGHT COLUMN: Exceptions ──────────────────────────────────────────── *@
-        <div class="col-12 col-xl-6">
+        <div class="col-12 col-xl-6" style="min-width:0">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-bottom">
                     <h5 class="mb-0">Exceptions — Next 4 Weeks</h5>
@@ -273,7 +319,73 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        @* Mobile: card list (hidden md+) *@
+                        <div class="d-md-none">
+                            @foreach (var item in exceptions)
+                            {
+                                <div class="border-bottom px-3 py-3">
+                                    <div class="fw-semibold">
+                                        @DateConverter.ToEasternDate(item.Session.SessionDate, item.Session.ScheduledTimeUtc).ToString("ddd MMM d")
+                                        <span class="text-muted fw-normal">@item.Session.ScheduledTimeUtc.ToString("HH:mm")z</span>
+                                        <span class="text-muted fw-normal">· @item.Session.Net?.Name</span>
+                                    </div>
+                                    <div class="small mt-1">
+                                        Regular NCS:
+                                        @if (item.StandingController is not null)
+                                        {
+                                            <span class="slot-callsign">@item.StandingController.Callsign</span>
+                                            @if (item.Session.IsForcedOpen)
+                                            {
+                                                <span class="badge bg-warning text-dark ms-1 small">force-opened</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary ms-1 small">unavailable</span>
+                                            }
+                                        }
+                                        else if (item.Session.IsForcedOpen)
+                                        {
+                                            <span class="text-muted fst-italic">none assigned</span>
+                                            <span class="badge bg-warning text-dark ms-1 small">force-opened</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">none assigned</span>
+                                        }
+                                    </div>
+                                    @if (item.Volunteers.Any())
+                                    {
+                                        <div class="d-flex flex-wrap gap-1 mt-2">
+                                            @foreach (var vol in item.Volunteers)
+                                            {
+                                                <form asp-action="Confirm" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="assignmentId" value="@vol.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        ✓ @vol.NetController?.Callsign
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
+                                    <form asp-action="Assign" method="post" class="d-flex gap-1 align-items-center mt-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sessionId" value="@item.Session.Id" />
+                                        <select name="controllerId" class="form-select form-select-sm flex-grow-1 nc-select">
+                                            <option value="0">— Pick a sub —</option>
+                                            @foreach (var nc in controllers)
+                                            {
+                                                <option value="@nc.Id">@nc.Callsign – @nc.Name</option>
+                                            }
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary px-2">Assign</button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+
+                        @* Desktop: table (hidden below md) *@
+                        <div class="d-none d-md-block table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
@@ -383,6 +495,29 @@
         background-color: var(--bs-tertiary-bg) !important;
         color: var(--bs-secondary-color) !important;
     }
+
+    /* Mobile day-grouped card list for Regular Schedule */
+    .sched-card-list {
+        border-top: 1px solid var(--bs-border-color);
+    }
+    .sched-day-group {
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    .sched-day-group:last-child {
+        border-bottom: 0;
+    }
+    .sched-day-header {
+        background-color: #212529;
+        color: #fff;
+        font-weight: 600;
+        font-size: .85rem;
+    }
+    [data-bs-theme="dark"] .sched-day-header {
+        background-color: var(--bs-secondary-bg);
+    }
+    .sched-net-row + .sched-net-row {
+        border-top: 1px solid var(--bs-border-color-translucent);
+    }
 </style>
 <script>
 (function () {
@@ -405,6 +540,15 @@
             var filter = this.dataset.bandFilter;
             document.querySelectorAll('.net-col').forEach(function (col) {
                 col.style.display = (filter === 'all' || col.dataset.band === filter) ? '' : 'none';
+            });
+
+            // Hide mobile day-group cards left with no visible nets after filtering.
+            document.querySelectorAll('.sched-day-group').forEach(function (group) {
+                var anyVisible = Array.prototype.some.call(
+                    group.querySelectorAll('.net-col'),
+                    function (col) { return col.style.display !== 'none'; }
+                );
+                group.style.display = anyVisible ? '' : 'none';
             });
         });
     });
