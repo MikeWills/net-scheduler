@@ -16,38 +16,39 @@
     }
     else
     {
-        <table class="table table-hover">
-            <thead class="table-dark">
-                <tr><th>Net</th><th>Date</th><th>Time (UTC)</th><th>Volunteers</th><th></th></tr>
-            </thead>
-            <tbody>
-                @foreach (var session in Model)
-                {
-                    bool alreadyVolunteered = session.Assignments.Any(a =>
-                        a.NetControllerId == myControllerId &&
-                        a.AssignmentType == AssignmentType.Volunteer &&
-                        a.Status != AssignmentStatus.Cancelled);
+        @* Mobile: card list (hidden md+) *@
+        <div class="d-md-none border rounded">
+            @foreach (var session in Model)
+            {
+                bool alreadyVolunteered = session.Assignments.Any(a =>
+                    a.NetControllerId == myControllerId &&
+                    a.AssignmentType == AssignmentType.Volunteer &&
+                    a.Status != AssignmentStatus.Cancelled);
+                var volunteers = session.Assignments
+                    .Where(a => a.AssignmentType == AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled)
+                    .ToList();
 
-                    <tr>
-                        <td>@session.Net?.Name</td>
-                        <td class="text-nowrap">@DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMMM d, yyyy")</td>
-                        <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
-                        <td>
-                            @{
-                                var volunteers = session.Assignments
-                                    .Where(a => a.AssignmentType == AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled)
-                                    .ToList();
-                            }
-                            @if (volunteers.Any())
-                            {
-                                @string.Join(", ", volunteers.Select(a => a.NetController?.Callsign))
-                            }
-                            else
-                            {
-                                <span class="text-muted">None yet</span>
-                            }
-                        </td>
-                        <td>
+                <div class="border-bottom px-3 py-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1" style="min-width:0">
+                            <div class="fw-bold">@session.Net?.Name</div>
+                            <div class="small text-muted mt-1">
+                                @DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMM d, yyyy")
+                                <span class="mx-1">·</span>
+                                @session.ScheduledTimeUtc.ToString("HH:mm")z
+                            </div>
+                            <div class="small mt-1">
+                                @if (volunteers.Any())
+                                {
+                                    @string.Join(", ", volunteers.Select(a => a.NetController?.Callsign))
+                                }
+                                else
+                                {
+                                    <span class="text-muted">None yet</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
                             @if (alreadyVolunteered)
                             {
                                 <span class="badge bg-warning text-dark">Volunteered</span>
@@ -59,11 +60,63 @@
                                     <button type="submit" class="btn btn-sm btn-danger">Volunteer</button>
                                 </form>
                             }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Desktop: table (hidden below md) *@
+        <div class="d-none d-md-block table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr><th>Net</th><th>Date</th><th>Time (UTC)</th><th>Volunteers</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var session in Model)
+                    {
+                        bool alreadyVolunteered = session.Assignments.Any(a =>
+                            a.NetControllerId == myControllerId &&
+                            a.AssignmentType == AssignmentType.Volunteer &&
+                            a.Status != AssignmentStatus.Cancelled);
+
+                        <tr>
+                            <td>@session.Net?.Name</td>
+                            <td class="text-nowrap">@DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMMM d, yyyy")</td>
+                            <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
+                            <td>
+                                @{
+                                    var volunteers = session.Assignments
+                                        .Where(a => a.AssignmentType == AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled)
+                                        .ToList();
+                                }
+                                @if (volunteers.Any())
+                                {
+                                    @string.Join(", ", volunteers.Select(a => a.NetController?.Callsign))
+                                }
+                                else
+                                {
+                                    <span class="text-muted">None yet</span>
+                                }
+                            </td>
+                            <td>
+                                @if (alreadyVolunteered)
+                                {
+                                    <span class="badge bg-warning text-dark">Volunteered</span>
+                                }
+                                else
+                                {
+                                    <form asp-action="Volunteer" method="post" class="d-inline">
+                                        <input type="hidden" name="sessionId" value="@session.Id" />
+                                        <button type="submit" class="btn btn-sm btn-danger">Volunteer</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 
     @if (backupSessions.Any())
@@ -71,47 +124,51 @@
         <h2 class="mt-4">Backup Requests</h2>
         <p class="text-muted">The assigned NCS for these sessions may need a backup. Stand by to help if needed — you and the NCS will coordinate directly.</p>
 
-        <table class="table table-hover">
-            <thead class="table-warning">
-                <tr><th>Net</th><th>Date</th><th>Time (UTC)</th><th>NCS</th><th>Backups</th><th></th></tr>
-            </thead>
-            <tbody>
-                @foreach (var session in backupSessions)
-                {
-                    var backups = session.Assignments
-                        .Where(a => a.AssignmentType == AssignmentType.Backup && a.Status != AssignmentStatus.Cancelled)
-                        .ToList();
-                    bool alreadyStandingBy = backups.Any(a => a.NetControllerId == myControllerId);
+        @* Mobile: card list (hidden md+) *@
+        <div class="d-md-none border rounded">
+            @foreach (var session in backupSessions)
+            {
+                var backups = session.Assignments
+                    .Where(a => a.AssignmentType == AssignmentType.Backup && a.Status != AssignmentStatus.Cancelled)
+                    .ToList();
+                bool alreadyStandingBy = backups.Any(a => a.NetControllerId == myControllerId);
 
-                    var requestingAssignment = session.Assignments
-                        .FirstOrDefault(a => a.AssignmentType != AssignmentType.Backup && a.AssignmentType != AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled);
-                    var viewEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
-                    var standingNcs = allStanding.FirstOrDefault(sa =>
-                        sa.NetId == session.NetId &&
-                        sa.DayOfWeek == viewEasternDay &&
-                        sa.EffectiveFrom <= session.SessionDate &&
-                        (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
-                    string ncsCallsign = requestingAssignment?.NetController?.Callsign
-                        ?? standingNcs?.NetController?.Callsign
-                        ?? "Unknown";
+                var requestingAssignment = session.Assignments
+                    .FirstOrDefault(a => a.AssignmentType != AssignmentType.Backup && a.AssignmentType != AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled);
+                var viewEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
+                var standingNcs = allStanding.FirstOrDefault(sa =>
+                    sa.NetId == session.NetId &&
+                    sa.DayOfWeek == viewEasternDay &&
+                    sa.EffectiveFrom <= session.SessionDate &&
+                    (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
+                string ncsCallsign = requestingAssignment?.NetController?.Callsign
+                    ?? standingNcs?.NetController?.Callsign
+                    ?? "Unknown";
 
-                    <tr>
-                        <td>@session.Net?.Name</td>
-                        <td class="text-nowrap">@DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMMM d, yyyy")</td>
-                        <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
-                        <td>@ncsCallsign</td>
-                        <td>
-                            @if (backups.Any())
-                            {
-                                @string.Join(", ", backups.Select(a => a.NetController?.Callsign))
-                            }
-                            else
-                            {
-                                <span class="text-muted">None yet</span>
-                            }
-                            <span class="text-muted small">(@backups.Count/2)</span>
-                        </td>
-                        <td>
+                <div class="border-bottom px-3 py-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1" style="min-width:0">
+                            <div class="fw-bold">@session.Net?.Name</div>
+                            <div class="small text-muted mt-1">
+                                @DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMM d, yyyy")
+                                <span class="mx-1">·</span>
+                                @session.ScheduledTimeUtc.ToString("HH:mm")z
+                            </div>
+                            <div class="small mt-1">NCS: @ncsCallsign</div>
+                            <div class="small mt-1">
+                                Backups:
+                                @if (backups.Any())
+                                {
+                                    @string.Join(", ", backups.Select(a => a.NetController?.Callsign))
+                                }
+                                else
+                                {
+                                    <span class="text-muted">None yet</span>
+                                }
+                                <span class="text-muted">(@backups.Count/2)</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
                             @if (alreadyStandingBy)
                             {
                                 <span class="badge bg-success">Standing by</span>
@@ -121,17 +178,83 @@
                                 <form asp-controller="Volunteer" asp-action="StandByAsBackup" method="post" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@session.Id" />
                                     <input type="hidden" name="returnTo" value="Volunteer" />
-                                    <button type="submit" class="btn btn-sm btn-warning">Stand By as Backup</button>
+                                    <button type="submit" class="btn btn-sm btn-warning">Stand By</button>
                                 </form>
                             }
                             else
                             {
                                 <span class="text-muted small">Full</span>
                             }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Desktop: table (hidden below md) *@
+        <div class="d-none d-md-block table-responsive">
+            <table class="table table-hover">
+                <thead class="table-warning">
+                    <tr><th>Net</th><th>Date</th><th>Time (UTC)</th><th>NCS</th><th>Backups</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var session in backupSessions)
+                    {
+                        var backups = session.Assignments
+                            .Where(a => a.AssignmentType == AssignmentType.Backup && a.Status != AssignmentStatus.Cancelled)
+                            .ToList();
+                        bool alreadyStandingBy = backups.Any(a => a.NetControllerId == myControllerId);
+
+                        var requestingAssignment = session.Assignments
+                            .FirstOrDefault(a => a.AssignmentType != AssignmentType.Backup && a.AssignmentType != AssignmentType.Volunteer && a.Status != AssignmentStatus.Cancelled);
+                        var viewEasternDay = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).DayOfWeek;
+                        var standingNcs = allStanding.FirstOrDefault(sa =>
+                            sa.NetId == session.NetId &&
+                            sa.DayOfWeek == viewEasternDay &&
+                            sa.EffectiveFrom <= session.SessionDate &&
+                            (sa.EffectiveTo == null || sa.EffectiveTo >= session.SessionDate));
+                        string ncsCallsign = requestingAssignment?.NetController?.Callsign
+                            ?? standingNcs?.NetController?.Callsign
+                            ?? "Unknown";
+
+                        <tr>
+                            <td>@session.Net?.Name</td>
+                            <td class="text-nowrap">@DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc).ToString("ddd, MMMM d, yyyy")</td>
+                            <td>@session.ScheduledTimeUtc.ToString("HH:mm")z</td>
+                            <td>@ncsCallsign</td>
+                            <td>
+                                @if (backups.Any())
+                                {
+                                    @string.Join(", ", backups.Select(a => a.NetController?.Callsign))
+                                }
+                                else
+                                {
+                                    <span class="text-muted">None yet</span>
+                                }
+                                <span class="text-muted small">(@backups.Count/2)</span>
+                            </td>
+                            <td>
+                                @if (alreadyStandingBy)
+                                {
+                                    <span class="badge bg-success">Standing by</span>
+                                }
+                                else if (backups.Count < 2)
+                                {
+                                    <form asp-controller="Volunteer" asp-action="StandByAsBackup" method="post" class="d-inline">
+                                        <input type="hidden" name="sessionId" value="@session.Id" />
+                                        <input type="hidden" name="returnTo" value="Volunteer" />
+                                        <button type="submit" class="btn btn-sm btn-warning">Stand By as Backup</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Full</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 </div>
