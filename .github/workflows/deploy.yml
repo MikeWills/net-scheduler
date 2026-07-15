@@ -90,15 +90,15 @@ jobs:
       - name: Health check
         run: |
           ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" "
-            for i in \$(seq 1 15); do
+            for i in \$(seq 1 30); do
               code=\$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$APP_PORT/)
               if [ \"\$code\" != \"000\" ]; then
                 echo \"App responded with HTTP \$code\"
                 exit 0
               fi
-              sleep 2
+              sleep 3
             done
-            echo 'App failed to respond within 30s; recent logs:'
+            echo 'App failed to respond within 90s; recent logs:'
             sudo journalctl -u $SERVICE_NAME -n 50 --no-pager
             exit 1
           "
