@@ -12,6 +12,12 @@
     var exceptions  = ViewBag.Exceptions  as List<AssignmentSlotItem> ?? new();
     var forcedOpen  = ViewBag.ForcedOpen  as List<NetSession>         ?? new();
 
+    var exceptionsPage         = ViewBag.ExceptionsPage         as int? ?? 0;
+    var exceptionsPageSize     = ViewBag.ExceptionsPageSize     as int? ?? 10;
+    var exceptionsTotalCount   = ViewBag.ExceptionsTotalCount   as int? ?? 0;
+    var exceptionsHasNextPage  = ViewBag.ExceptionsHasNextPage  as bool? ?? false;
+    var exceptionsWindowWeeks  = ViewBag.ExceptionsWindowWeeks  as int? ?? 9;
+
     var days = new[] {
         DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
         DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday
@@ -304,17 +310,23 @@
         <div class="col-12 col-xl-6" style="min-width:0">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-bottom">
-                    <h5 class="mb-0">Exceptions — Next 4 Weeks</h5>
+                    <h5 class="mb-0">
+                        Exceptions — Next @exceptionsWindowWeeks Weeks
+                        @if (exceptionsTotalCount > 0)
+                        {
+                            <span class="text-muted fw-normal fs-6">(@exceptionsTotalCount)</span>
+                        }
+                    </h5>
                     <small class="text-muted">
                         Dates where the regular controller is unavailable or a volunteer has offered to cover.
                         Assigning a sub here only affects that specific date.
                     </small>
                 </div>
-                <div class="card-body @(exceptions.Any() ? "p-0" : "")">
-                    @if (!exceptions.Any())
+                <div class="card-body @(exceptionsTotalCount > 0 ? "p-0" : "")">
+                    @if (exceptionsTotalCount == 0)
                     {
                         <p class="text-success fw-semibold mb-0">
-                            ✓ All sessions are covered — no exceptions in the next 4 weeks.
+                            ✓ All sessions are covered — no exceptions in the next @exceptionsWindowWeeks weeks.
                         </p>
                     }
                     else
@@ -361,6 +373,7 @@
                                                 <form asp-action="Confirm" method="post" class="d-inline">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="assignmentId" value="@vol.Id" />
+                                                    <input type="hidden" name="exceptionsPage" value="@exceptionsPage" />
                                                     <button type="submit" class="btn btn-sm btn-success">
                                                         ✓ @vol.NetController?.Callsign
                                                     </button>
@@ -371,6 +384,7 @@
                                     <form asp-action="Assign" method="post" class="d-flex gap-1 align-items-center mt-2">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="sessionId" value="@item.Session.Id" />
+                                        <input type="hidden" name="exceptionsPage" value="@exceptionsPage" />
                                         <select name="controllerId" class="form-select form-select-sm flex-grow-1 nc-select">
                                             <option value="0">— Pick a sub —</option>
                                             @foreach (var nc in controllers)
@@ -437,6 +451,7 @@
                                                             <form asp-action="Confirm" method="post" class="d-inline">
                                                                 @Html.AntiForgeryToken()
                                                                 <input type="hidden" name="assignmentId" value="@vol.Id" />
+                                                                <input type="hidden" name="exceptionsPage" value="@exceptionsPage" />
                                                                 <button type="submit" class="btn btn-sm btn-success">
                                                                     ✓ @vol.NetController?.Callsign
                                                                 </button>
@@ -453,6 +468,7 @@
                                                 <form asp-action="Assign" method="post" class="d-flex gap-1 align-items-center">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="sessionId" value="@item.Session.Id" />
+                                                    <input type="hidden" name="exceptionsPage" value="@exceptionsPage" />
                                                     <select name="controllerId" class="form-select form-select-sm flex-grow-1 nc-select">
                                                         <option value="0">— Pick a sub —</option>
                                                         @foreach (var nc in controllers)
@@ -468,6 +484,34 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        @* Pagination — shown whenever there's more than one page *@
+                        @if (exceptionsPage > 0 || exceptionsHasNextPage)
+                        {
+                            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
+                                @if (exceptionsPage > 0)
+                                {
+                                    <a asp-action="Index" asp-route-exceptionsPage="@(exceptionsPage - 1)"
+                                       class="btn btn-sm btn-outline-secondary">&laquo; Prev</a>
+                                }
+                                else
+                                {
+                                    <span></span>
+                                }
+                                <span class="text-muted small">
+                                    Showing @(exceptionsPage * exceptionsPageSize + 1)–@(Math.Min((exceptionsPage + 1) * exceptionsPageSize, exceptionsTotalCount)) of @exceptionsTotalCount
+                                </span>
+                                @if (exceptionsHasNextPage)
+                                {
+                                    <a asp-action="Index" asp-route-exceptionsPage="@(exceptionsPage + 1)"
+                                       class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
+                                }
+                                else
+                                {
+                                    <span></span>
+                                }
+                            </div>
+                        }
                     }
                 </div>
             </div>

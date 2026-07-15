@@ -38,13 +38,21 @@ public class AssignmentsController : Controller
         return Url.Action("BcFeed", "Ical", new { token }, Request.Scheme);
     }
 
+    // Exceptions are paged 10 at a time; the lookahead window matches the 9-week
+    // horizon that SessionGeneratorService actually generates sessions for, since
+    // there's nothing to page through beyond that.
+    private const int ExceptionsPageSize = 10;
+    private const int ExceptionsWindowWeeks = 9;
+
     // GET: Assignments/Index
     // Section 1 — Regular Schedule grid (standing assignments, repeat weekly)
     // Section 2 — Upcoming exceptions (open slots / volunteers needing a sub)
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int exceptionsPage = 0)
     {
+        if (exceptionsPage < 0) exceptionsPage = 0;
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var exceptionWindow = today.AddDays(28); // 4-week lookahead for exceptions
+        var exceptionWindow = today.AddDays(ExceptionsWindowWeeks * 7);
 
         var managedNetIds = await GetManagedNetIdsAsync();
 
@@ -133,11 +141,27 @@ public class AssignmentsController : Controller
             .OrderBy(s => s.SessionDate)
             .ToListAsync();
 
+        // Clamp to the last valid page once we know how many exceptions there are,
+        // then page the already-filtered in-memory list (filtering can't be pushed
+        // down to SQL — it depends on unavailability/standing lookups above).
+        var totalPages = (int)Math.Ceiling(exceptions.Count / (double)ExceptionsPageSize);
+        if (exceptionsPage > 0 && exceptionsPage >= totalPages) exceptionsPage = Math.Max(0, totalPages - 1);
+
+        var pagedExceptions = exceptions
+            .Skip(exceptionsPage * ExceptionsPageSize)
+            .Take(ExceptionsPageSize)
+            .ToList();
+
         ViewBag.Nets = nets;
         ViewBag.Controllers = controllers;
         ViewBag.Rules = rules;
         ViewBag.Standings = standings;
-        ViewBag.Exceptions = exceptions;
+        ViewBag.Exceptions = pagedExceptions;
+        ViewBag.ExceptionsPage = exceptionsPage;
+        ViewBag.ExceptionsPageSize = ExceptionsPageSize;
+        ViewBag.ExceptionsTotalCount = exceptions.Count;
+        ViewBag.ExceptionsHasNextPage = (exceptionsPage + 1) * ExceptionsPageSize < exceptions.Count;
+        ViewBag.ExceptionsWindowWeeks = ExceptionsWindowWeeks;
         ViewBag.ForcedOpen = forcedOpen;
         return View();
     }
@@ -176,7 +200,7 @@ public class AssignmentsController : Controller
     // POST: Assign — one-time sub for a specific session date only
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Assign(int sessionId, int controllerId)
+    public async Task<IActionResult> Assign(int sessionId, int controllerId, int exceptionsPage = 0)
     {
         var managedNetIds = await GetManagedNetIdsAsync();
         var session = await _db.NetSessions.Include(s => s.Net).FirstOrDefaultAsync(s => s.Id == sessionId);
@@ -206,13 +230,13 @@ public class AssignmentsController : Controller
 
         var displayDate = DateConverter.ToEasternDate(session.SessionDate, session.ScheduledTimeUtc);
         TempData["Success"] = $"Assigned {controller.Callsign} to {session.Net?.Name} on {displayDate:MMMM d, yyyy}.";
-        return RedirectToAction("Index");
+        return RedirectToAction("Index", new { exceptionsPage });
     }
 
     // POST: Confirm — promote a volunteer to confirmed for a specific session
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Confirm(int assignmentId)
+    public async Task<IActionResult> Confirm(int assignmentId, int exceptionsPage = 0)
     {
         var assignment = await _db.SessionAssignments
             .Include(a => a.NetController)
@@ -245,7 +269,7 @@ public class AssignmentsController : Controller
             await _emailService.SendAssignmentConfirmationAsync(assignment.NetController, assignment.NetSession);
 
         TempData["Success"] = $"Confirmed {assignment.NetController.Callsign}.";
-        return RedirectToAction("Index");
+        return RedirectToAction("Index", new { exceptionsPage });
     }
 
     // POST: AssignByDate — one-time sub for any date, creates the session if it doesn't exist yet
