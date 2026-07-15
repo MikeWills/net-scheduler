@@ -136,7 +136,12 @@
                     @if (forcedOpen.Any())
                     {
                         <hr class="my-3" />
-                        <p class="mb-2 text-muted small fw-semibold">Currently force-marked as open:</p>
+                        <p class="mb-1 text-muted small fw-semibold">Currently force-marked as open:</p>
+                        <p class="mb-2 text-muted small">
+                            These dates show as <strong>NCS Needed</strong> on the public schedule until a sub is
+                            assigned or you clear the flag with the × below — assigning one here automatically
+                            clears it.
+                        </p>
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var s in forcedOpen)
                             {
