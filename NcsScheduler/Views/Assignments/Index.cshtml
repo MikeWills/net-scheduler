@@ -43,9 +43,12 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-start mb-1 flex-wrap gap-2">
         <h2 class="mb-0">Manage Assignments</h2>
-        <a asp-action="Calendar" class="btn btn-outline-primary btn-sm">
-            &#128197; Weekly Calendar
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="https://www.omiss.net/membership/admin/" target="_blank" class="btn btn-outline-secondary btn-sm">OMISS Admin Site</a>
+            <a asp-action="Calendar" class="btn btn-outline-primary btn-sm">
+                &#128197; Weekly Calendar
+            </a>
+        </div>
     </div>
     <p class="text-muted mb-4">
         Set who runs each net each day. Assignments in the <strong>Regular Schedule</strong> repeat
