@@ -107,9 +107,7 @@
                                             <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
                                             @if (!string.IsNullOrWhiteSpace(cell.MemberNumber))
                                             {
-                                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline copy-member-btn"
-                                                        data-member="@cell.MemberNumber"
-                                                        title="Copy member number @cell.MemberNumber">&#128203;</button>
+                                                <partial name="_CopyMemberButton" model="cell.MemberNumber" />
                                             }
                                             @if (cell.AssignmentType == AssignmentType.Substitute)
                                             {
@@ -237,9 +235,7 @@
                                             }
                                             if (!string.IsNullOrWhiteSpace(cell.MemberNumber))
                                             {
-                                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline copy-member-btn"
-                                                        data-member="@cell.MemberNumber"
-                                                        title="Copy member number @cell.MemberNumber">&#128203;</button>
+                                                <partial name="_CopyMemberButton" model="cell.MemberNumber" />
                                             }
                                             if (cell.AssignmentType == AssignmentType.Substitute)
                                             {
@@ -311,7 +307,7 @@
                 Hover for NCS details
             </span>
             <span class="d-flex align-items-center gap-1">
-                &#128203;
+                <svg class="copy-legend-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" aria-hidden="true"><path d="M384 336l-192 0c-8.8 0-16-7.2-16-16l0-256c0-8.8 7.2-16 16-16l140.1 0L400 115.9 400 320c0 8.8-7.2 16-16 16zM192 384l192 0c35.3 0 64-28.7 64-64l0-204.1c0-12.7-5.1-24.9-14.1-33.9L366.1 14.1c-9-9-21.2-14.1-33.9-14.1L192 0c-35.3 0-64 28.7-64 64l0 256c0 35.3 28.7 64 64 64zM64 128c-35.3 0-64 28.7-64 64L0 448c0 35.3 28.7 64 64 64l192 0c35.3 0 64-28.7 64-64l0-32-48 0 0 32c0 8.8-7.2 16-16 16L64 464c-8.8 0-16-7.2-16-16l0-256c0-8.8 7.2-16 16-16l32 0 0-48-32 0z"/></svg>
                 Copy member number
             </span>
         </div>
@@ -410,6 +406,32 @@
             border-bottom: 1px dotted var(--bs-secondary-color);
         }
 
+        /* Copy-member-number button (Font Awesome glyphs, inlined as SVG) */
+        .copy-member-btn {
+            color: var(--bs-secondary-color);
+            text-decoration: none;
+            vertical-align: baseline;
+        }
+        .copy-member-btn:hover {
+            color: var(--bs-primary);
+        }
+        .copy-member-btn svg,
+        .copy-legend-icon {
+            width: .8em;
+            height: .8em;
+        }
+        /* Show the copy glyph by default, the check only after a successful copy */
+        .copy-member-btn .icon-check,
+        .copy-member-btn.copied .icon-copy {
+            display: none;
+        }
+        .copy-member-btn.copied .icon-check {
+            display: inline;
+        }
+        .copy-member-btn.copied {
+            color: var(--bs-success);
+        }
+
         /* Keep table cells from getting too cramped on small screens */
         @@media (max-width: 768px) {
             .bc-calendar {
@@ -462,9 +484,8 @@
                 var num = self.dataset.member || '';
 
                 function flash() {
-                    var original = self.innerHTML;
-                    self.innerHTML = '✅';
-                    setTimeout(function () { self.innerHTML = original; }, 1500);
+                    self.classList.add('copied');
+                    setTimeout(function () { self.classList.remove('copied'); }, 1500);
                 }
 
                 if (navigator.clipboard && window.isSecureContext) {
