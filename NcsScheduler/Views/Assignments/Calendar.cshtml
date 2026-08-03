@@ -105,6 +105,12 @@
                                         else
                                         {
                                             <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
+                                            @if (!string.IsNullOrWhiteSpace(cell.MemberNumber))
+                                            {
+                                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline copy-member-btn"
+                                                        data-member="@cell.MemberNumber"
+                                                        title="Copy member number @cell.MemberNumber">&#128203;</button>
+                                            }
                                             @if (cell.AssignmentType == AssignmentType.Substitute)
                                             {
                                                 <div><span class="badge bg-info text-dark mt-1">sub</span></div>
@@ -229,6 +235,12 @@
                                             {
                                                 <span class="font-monospace fw-semibold">@cell.CopyPasteFormat</span>
                                             }
+                                            if (!string.IsNullOrWhiteSpace(cell.MemberNumber))
+                                            {
+                                                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline copy-member-btn"
+                                                        data-member="@cell.MemberNumber"
+                                                        title="Copy member number @cell.MemberNumber">&#128203;</button>
+                                            }
                                             if (cell.AssignmentType == AssignmentType.Substitute)
                                             {
                                                 <div><span class="badge bg-info text-dark mt-1">sub</span></div>
@@ -297,6 +309,10 @@
             <span class="d-flex align-items-center gap-1">
                 <span class="ncs-callsign border-bottom border-secondary border-dotted">W1AW</span>
                 Hover for NCS details
+            </span>
+            <span class="d-flex align-items-center gap-1">
+                &#128203;
+                Copy member number
             </span>
         </div>
     }
@@ -438,6 +454,33 @@
                 });
             });
         }
+
+        // Copy just the member number to the clipboard
+        document.querySelectorAll('.copy-member-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var self = this;
+                var num = self.dataset.member || '';
+
+                function flash() {
+                    var original = self.innerHTML;
+                    self.innerHTML = '✅';
+                    setTimeout(function () { self.innerHTML = original; }, 1500);
+                }
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(num).then(flash);
+                } else {
+                    // Fallback for non-secure contexts (e.g. plain http in dev)
+                    var ta = document.createElement('textarea');
+                    ta.value = num;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); flash(); } finally { document.body.removeChild(ta); }
+                }
+            });
+        });
 
         // Bootstrap popovers for NCS callsigns
         document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
