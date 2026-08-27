@@ -58,8 +58,12 @@ jobs:
 
       - name: Backup database
         run: |
+          # Must match the sudoers entry byte-for-byte: sudo matches the whole
+          # command line, and the rule is pinned to the argument-free form
+          # (`... ncsscheduler-backup-db ""`). The script does the snapshot and
+          # the pruning internally -- see deploy/ncsscheduler-backup-db.
           ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "sudo cp '$DEPLOY_PATH/ncsscheduler.db' '$DEPLOY_PATH/ncsscheduler.db.bak-\$(date +%Y%m%d%H%M%S)'"
+            "sudo /usr/local/sbin/ncsscheduler-backup-db"
 
       - name: Stop service
         run: |
@@ -68,14 +72,15 @@ jobs:
 
       - name: Sync files
         run: |
-          # deploy isn't the owner of the existing www-data-owned files,
-          # so it can't reliably delete/overwrite/chown/chmod them as
-          # itself. --rsync-path runs the remote-side rsync as root
-          # (via a narrowly-scoped NOPASSWD sudo rule) so it can freely
-          # write, delete, and set final ownership via --chown.
+          # Runs as the plain deploy user -- no sudo, no --rsync-path, no
+          # --chown. /opt/ncsscheduler is owned deploy:www-data with the setgid
+          # bit on its directories, so deploy can create, overwrite and delete
+          # in the tree directly, and new files inherit the www-data group the
+          # service needs to read them. `sudo rsync *` was root-equivalent
+          # (arbitrary read/write anywhere, plus command execution via
+          # --rsync-path/-e), so the fix is to not need sudo at all.
           rsync -avz --delete \
-            --rsync-path="sudo rsync" \
-            --chown=www-data:www-data \
+            --omit-dir-times \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
             --exclude '*.db' \

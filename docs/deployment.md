@@ -28,7 +28,9 @@ Then copy the contents of the `publish/` folder to the server (e.g. via WinSCP o
 
 ## Automated Deploy (GitHub Actions)
 
-`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB, stops the service, `rsync`s the publish output to `/opt/ncsscheduler/` (running as root remotely via `--rsync-path="sudo rsync"`, setting final ownership inline with `--chown=www-data:www-data`), restarts the service, and polls `http://localhost:5000/` (the production port) for a response before declaring success.
+`.github/workflows/deploy.yml` deploys to the server automatically whenever a **GitHub Release is published**. The runner joins the Tailscale network (the server has no public SSH access) as an ephemeral node, then over SSH: backs up the SQLite DB (via the root-owned `/usr/local/sbin/ncsscheduler-backup-db` helper), stops the service, `rsync`s the publish output to `/opt/ncsscheduler/` **as the plain `deploy` user with no sudo** — `deploy` owns that tree, and its setgid directories hand new files the `www-data` group the service reads with — restarts the service, and polls `http://localhost:5000/` (the production port) for a response before declaring success.
+
+The deploy account holds **no wildcard sudo rules**. It gets exactly four root commands, each pinned to its full argument list: stop the service, start the service, run the argument-free backup helper, and tail 50 lines of the service journal. See step 2 below for why that matters.
 
 ### One-time setup
 
@@ -44,23 +46,63 @@ Then copy the contents of the `publish/` folder to the server (e.g. via WinSCP o
   ```
   If your ACLs restrict traffic between devices (not "accept all"), add a `grants`/`acls` rule permitting `tag:ci` → the server (port 22).
 
-**2. Deploy user + SSH key on the server**
+**2. Deploy user, deploy-tree ownership, and SSH key on the server**
 
-The `deploy` account doesn't need filesystem access to `/opt/ncsscheduler` itself — every operation that touches it (rsync, the DB backup, restarting the service) runs as root via a narrowly-scoped set of NOPASSWD sudo rules instead:
+The `deploy` account **owns the deploy tree** and rsyncs into it directly as itself — no sudo involved in the file sync at all. Only three things still need root, and each is granted as an exact, argument-pinned command.
+
 ```bash
 sudo useradd -m -s /bin/bash deploy
 
-sudo tee /etc/sudoers.d/ncsscheduler-deploy > /dev/null <<'EOF'
-Defaults:deploy !requiretty
-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl stop ncsscheduler, /usr/bin/systemctl start ncsscheduler, /usr/bin/rsync *, /usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *, /usr/bin/journalctl -u ncsscheduler *
-EOF
-sudo chmod 0440 /etc/sudoers.d/ncsscheduler-deploy
-sudo visudo -c
+# Let deploy own /opt/ncsscheduler, with www-data as the group so the service
+# can still read everything. The setgid bit on directories makes every file
+# rsync creates inherit the www-data group automatically.
+sudo chown -R deploy:www-data /opt/ncsscheduler
+sudo find /opt/ncsscheduler -type d -exec chmod g+s {} +
+sudo chmod -R g+rX /opt/ncsscheduler
+
+# The database itself stays owned by the service account -- the app writes it,
+# the deploy never touches it (rsync excludes *.db / -shm / -wal / .bak-*).
+sudo chown www-data:www-data /opt/ncsscheduler/ncsscheduler.db*
 ```
 
-> `/etc/sudoers.d/` files **must** be mode `0440` — `tee` creates them with your default umask instead, so sudo silently ignores the file (and every sudo call falls back to demanding a password) until you `chmod` it. `visudo -c` will tell you if a file has the wrong permissions. The `!requiretty` line is defensive in case your server otherwise sets `Defaults requiretty` globally, which also breaks NOPASSWD sudo over a non-interactive SSH session.
+> This ownership change is what makes `sudo rsync` unnecessary in the first place. Do it **before** installing the new sudoers file, or the next deploy will have neither the old sudo grant nor the filesystem permissions it replaces.
+
+**Backup helper.** Install `deploy/ncsscheduler-backup-db` from this repo as a root-owned, argument-free script. It does the `cp`/snapshot and old-backup pruning internally, so no `cp` with a wildcard destination has to be granted:
+
+```bash
+sudo install -o root -g root -m 0755 \
+    deploy/ncsscheduler-backup-db /usr/local/sbin/ncsscheduler-backup-db
+sudo apt install -y sqlite3   # optional; enables a consistent live-DB snapshot
+sudo -u deploy sudo /usr/local/sbin/ncsscheduler-backup-db   # smoke-test it
+```
+
+**Sudoers.** Write the file to a temp path, validate it, *then* install it — a broken `/etc/sudoers.d/` file can lock you out of sudo entirely:
+
+```bash
+sudo tee /etc/sudoers.d/.ncsscheduler-deploy.new > /dev/null <<'EOF'
+Defaults:deploy !requiretty
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl stop ncsscheduler, /usr/bin/systemctl start ncsscheduler, /usr/local/sbin/ncsscheduler-backup-db "", /usr/bin/journalctl -u ncsscheduler -n 50 --no-pager
+EOF
+
+sudo visudo -c -f /etc/sudoers.d/.ncsscheduler-deploy.new   # must print "parsed OK"
+sudo install -o root -g root -m 0440 \
+    /etc/sudoers.d/.ncsscheduler-deploy.new /etc/sudoers.d/ncsscheduler-deploy
+sudo rm /etc/sudoers.d/.ncsscheduler-deploy.new
+sudo visudo -c
+
+# Confirm: no `*` should appear anywhere in the output for this app.
+sudo -l -U deploy
+```
+
+> **Why no wildcards.** The previous rule granted `/usr/bin/rsync *` and `/usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *`. Both are root-equivalent, not narrow: `sudo rsync` with an unconstrained argument list can read or overwrite *any* file on the box (`/etc/shadow`, `/root/.ssh/authorized_keys`, `/etc/sudoers.d/` itself), and `--rsync-path=`/`-e` make it execute arbitrary commands as root. Whoever held the deploy SSH key owned the whole server, not just this app.
 >
-> The `rsync *` rule is intentionally broad (any rsync invocation as root) rather than pinned to exact flags, since the flag string can shift between rsync versions/options. It's scoped to the `deploy` account, which is only reachable via the CI-only SSH key — not a general login.
+> **Sudo matches the entire command line**, so every entry above has to be the exact, full line the workflow runs — `journalctl -u ncsscheduler -n 50 --no-pager`, not `journalctl -u ncsscheduler`.
+>
+> **The `""` is load-bearing.** A command listed with no argument spec after it permits *any* arguments — `/usr/local/sbin/ncsscheduler-backup-db` alone would let the caller pass whatever it likes, not just the argument-free invocation the script assumes. The explicit `""` pins it to "no arguments".
+>
+> **Mode 0440 is mandatory.** `tee` creates files with your default umask instead, and sudo silently ignores a misconfigured file — every sudo call then falls back to demanding a password. `visudo -c` reports wrong permissions. The `!requiretty` line is defensive in case the server sets `Defaults requiretty` globally, which also breaks NOPASSWD sudo over non-interactive SSH.
+
+**Ordering.** The sudoers file and `deploy.yml` must change together. A workflow that calls `ncsscheduler-backup-db` against the old sudoers file fails at the backup step; the old workflow's `sudo rsync` against the new sudoers file fails at the sync step. Apply the server-side changes above first, then merge and release.
 
 On your workstation, generate a dedicated deploy keypair and install the public half:
 ```bash
