@@ -75,6 +75,11 @@ sudo chown -R www-data:www-data /opt/ncsscheduler/.aspnet
 
 > This ownership change is what makes `sudo rsync` unnecessary in the first place. Do it **before** installing the new sudoers file, or the next deploy will have neither the old sudo grant nor the filesystem permissions it replaces.
 
+> **setgid does not survive `rsync -a` on its own.** `-a` implies `-p`, which copies the *source* directory modes — and the publish output has no setgid bit — so a plain `rsync -a` strips setgid from every directory it touches, and files synced afterwards land in `deploy`'s own group rather than `www-data`. The workflow counters this with `--no-g --chmod=Dg+xs,g+r`; if you ever hand-sync the tree, use the same flags or re-run the `chmod g+s` line afterwards. Verify with:
+> ```bash
+> find /opt/ncsscheduler -type d ! -perm -2000   # should list nothing
+> ```
+
 **Backup helper.** Install `deploy/ncsscheduler-backup-db` from this repo as a root-owned, argument-free script. It does the `cp`/snapshot and old-backup pruning internally, so no `cp` with a wildcard destination has to be granted:
 
 ```bash

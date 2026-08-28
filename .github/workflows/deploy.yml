@@ -73,18 +73,29 @@ jobs:
       - name: Sync files
         run: |
           # Runs as the plain deploy user -- no sudo, no --rsync-path, no
-          # --chown. /opt/ncsscheduler is owned deploy:www-data with the setgid
-          # bit on its directories, so deploy can create, overwrite and delete
-          # in the tree directly, and new files inherit the www-data group the
-          # service needs to read them. `sudo rsync *` was root-equivalent
-          # (arbitrary read/write anywhere, plus command execution via
-          # --rsync-path/-e), so the fix is to not need sudo at all.
+          # --chown. `sudo rsync *` was root-equivalent (arbitrary read/write
+          # anywhere, plus command execution via --rsync-path/-e), so the fix
+          # is to not need sudo at all: /opt/ncsscheduler is owned
+          # deploy:www-data with the setgid bit on its directories, so deploy
+          # writes the tree directly and new files inherit the www-data group
+          # the service reads with.
+          #
+          # --no-g and --chmod are what keep that true. -a implies -pg, and -p
+          # copies the SOURCE directory modes -- which have no setgid bit -- so
+          # a plain `rsync -a` strips setgid off every directory it touches and
+          # everything after that lands in deploy own group instead.
+          # --chmod=Dg+xs restores the bit on each sync, g+r guarantees the
+          # service can read what lands regardless of the source mode, and
+          # --no-g stops rsync overriding the group setgid just assigned.
+          #
           # .aspnet holds the data protection keys and is NOT in the publish
           # output, so --delete would wipe it and the app would mint a fresh
           # key at startup -- logging every user out on every deploy.
           # Excluding the dir also protects it from deletion.
           rsync -avz --delete \
             --omit-dir-times \
+            --no-g \
+            --chmod=Dg+xs,g+r \
             --exclude '.aspnet/' \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
