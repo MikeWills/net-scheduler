@@ -79,8 +79,13 @@ jobs:
           # service needs to read them. `sudo rsync *` was root-equivalent
           # (arbitrary read/write anywhere, plus command execution via
           # --rsync-path/-e), so the fix is to not need sudo at all.
+          # .aspnet holds the data protection keys and is NOT in the publish
+          # output, so --delete would wipe it and the app would mint a fresh
+          # key at startup -- logging every user out on every deploy.
+          # Excluding the dir also protects it from deletion.
           rsync -avz --delete \
             --omit-dir-times \
+            --exclude '.aspnet/' \
             --exclude 'appsettings.json' \
             --exclude 'appsettings.Development.json' \
             --exclude '*.db' \

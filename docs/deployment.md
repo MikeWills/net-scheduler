@@ -63,7 +63,15 @@ sudo chmod -R g+rX /opt/ncsscheduler
 # The database itself stays owned by the service account -- the app writes it,
 # the deploy never touches it (rsync excludes *.db / -shm / -wal / .bak-*).
 sudo chown www-data:www-data /opt/ncsscheduler/ncsscheduler.db*
+
+# Same for the data protection keys: the app WRITES here (it mints a new key
+# when the current one expires), so this subtree must stay service-owned. The
+# recursive chown above would otherwise leave it deploy-owned and only group
+# r-x -- key rotation then fails at runtime.
+sudo chown -R www-data:www-data /opt/ncsscheduler/.aspnet
 ```
+
+> **Don't skip the `.aspnet` line.** A `chown -R` across the whole tree sweeps up `.aspnet/DataProtection-Keys`, and the resulting `drwxr-sr-x deploy:www-data` is readable but not writable by `www-data`. Nothing breaks immediately — the existing key still decrypts — but the next rotation silently fails and auth cookies start invalidating on restart.
 
 > This ownership change is what makes `sudo rsync` unnecessary in the first place. Do it **before** installing the new sudoers file, or the next deploy will have neither the old sudo grant nor the filesystem permissions it replaces.
 
