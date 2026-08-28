@@ -61,3 +61,12 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# Server-side shell scripts must keep LF endings.
+#
+# `* text=auto` above would otherwise check these out as CRLF on Windows, and
+# a `#!/bin/bash` shebang fails on Linux with a bare "not found".
+###############################################################################
+deploy/*        text eol=lf
+*.sh            text eol=lf

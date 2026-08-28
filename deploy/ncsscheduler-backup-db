@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# ncsscheduler-backup-db -- snapshot the production SQLite database.
+#
+# Installed on the server as /usr/local/sbin/ncsscheduler-backup-db, owned by
+# root:root mode 0755, and invoked by the deploy workflow as:
+#
+#     sudo /usr/local/sbin/ncsscheduler-backup-db
+#
+# It takes NO arguments on purpose. The sudoers rule lists it as
+# `/usr/local/sbin/ncsscheduler-backup-db ""` -- the explicit empty-string
+# argument spec is what pins it to the argument-free form. A sudoers entry
+# written without the `""` permits ANY arguments, which is exactly the
+# wildcard hole this script exists to close: the old rule granted
+# `/usr/bin/cp /opt/ncsscheduler/ncsscheduler.db *`, and an unconstrained
+# destination means root can overwrite any file on the box.
+#
+# Keep this file and the sudoers entry in sync -- if the invocation ever needs
+# to change, update /etc/sudoers.d/ncsscheduler-deploy at the same time.
+
+set -euo pipefail
+
+DEPLOY_PATH=/opt/ncsscheduler
+DB="$DEPLOY_PATH/ncsscheduler.db"
+SERVICE_USER=www-data
+KEEP=10
+
+if [ "$#" -ne 0 ]; then
+    echo "ncsscheduler-backup-db: takes no arguments (got $#)" >&2
+    exit 64
+fi
+
+if [ ! -f "$DB" ]; then
+    echo "ncsscheduler-backup-db: no database at $DB; nothing to back up."
+    exit 0
+fi
+
+dest="$DB.bak-$(date +%Y%m%d%H%M%S)"
+
+if command -v sqlite3 >/dev/null 2>&1; then
+    # .backup is safe against a live, WAL-mode database; a plain cp of the
+    # .db file alone can miss committed pages still sitting in the -wal.
+    sqlite3 "$DB" ".backup '$dest'"
+else
+    echo "ncsscheduler-backup-db: sqlite3 not installed, falling back to cp" >&2
+    cp -p "$DB" "$dest"
+fi
+
+chown "$SERVICE_USER:$SERVICE_USER" "$dest"
+chmod 0640 "$dest"
+echo "ncsscheduler-backup-db: wrote $dest"
+
+# Prune all but the newest $KEEP snapshots.
+find "$DEPLOY_PATH" -maxdepth 1 -name 'ncsscheduler.db.bak-*' -type f -printf '%T@ %p\n' \
+    | sort -rn \
+    | tail -n "+$((KEEP + 1))" \
+    | cut -d' ' -f2- \
+    | while read -r old; do
+        rm -f -- "$old"
+        echo "ncsscheduler-backup-db: pruned $old"
+    done
