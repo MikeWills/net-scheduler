@@ -546,7 +546,10 @@ public class AssignmentsController : Controller
             // NetScheduleRule.DayOfWeek is in UTC; convert each rule to the Eastern
             // day it represents so columns (which are Eastern dates) line up correctly.
             var utcActiveDays = net.ScheduleRules.Select(r => r.DayOfWeek).ToHashSet();
-            if (!utcActiveDays.Any()) continue; // holiday-only nets have no fixed day-of-week
+            // Holiday/ad-hoc nets have no rules. They are NOT skipped here: their
+            // sessions are created by hand (AssignByDate), and a session that
+            // exists earns a cell below. The row is dropped at the end instead,
+            // but only if no day produced a cell.
 
             var row = new CalendarNetRow { Net = net };
 
@@ -556,14 +559,18 @@ public class AssignmentsController : Controller
                 var nextEasternDate = weekStart.AddDays(i);
                 // Convert Eastern date → UTC session date for lookup
                 var nextUtcDate = DateConverter.ToUtcSessionDate(nextEasternDate, net.ScheduledTimeUtc);
-                // Check if net runs on the corresponding UTC day
-                if (!utcActiveDays.Contains(nextUtcDate.DayOfWeek)) continue;
-                if (!net.IsInSeasonForDate(nextUtcDate)) continue; // net is out of season
+                var nextSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == nextUtcDate);
+
+                // A session that already exists was created deliberately -- by the
+                // generator from a rule, or by a BC via AssignByDate -- so it earns
+                // a cell regardless of day-of-week or season.
+                if (!CalendarLayout.ShouldRenderCell(utcActiveDays, nextUtcDate.DayOfWeek, nextSession is not null))
+                    continue;
+                if (nextSession is null && !net.IsInSeasonForDate(nextUtcDate)) continue; // out of season
 
                 var prevEasternDate = prevWeekStart.AddDays(i);
                 var prevUtcDate = DateConverter.ToUtcSessionDate(prevEasternDate, net.ScheduledTimeUtc);
 
-                var nextSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == nextUtcDate);
                 var prevSession = allSessions.FirstOrDefault(s => s.NetId == net.Id && s.SessionDate == prevUtcDate);
 
                 var nextCell = ResolveCellFromLoaded(net.Id, nextUtcDate, net.ScheduledTimeUtc, nextSession, standings, unavailabilities);
@@ -601,7 +608,8 @@ public class AssignmentsController : Controller
                 row.Cells[i] = nextCell;
             }
 
-            vm.Rows.Add(row);
+            if (CalendarLayout.ShouldRenderRow(utcActiveDays.Count > 0, row.Cells.Any(c => c is not null)))
+                vm.Rows.Add(row);
         }
 
         return View(vm);
