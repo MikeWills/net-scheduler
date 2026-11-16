@@ -12,6 +12,9 @@ public class BcCalendarViewModel
 
     /// <summary>One row per net that is scheduled at least one day this week.</summary>
     public List<CalendarNetRow> Rows { get; set; } = [];
+
+    /// <summary>Holiday name per day column (Sun..Sat), or null.</summary>
+    public string?[] HolidayLabels { get; set; } = new string?[7];
 }
 
 public class CalendarNetRow
