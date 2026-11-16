@@ -73,6 +73,10 @@
                     <div class="cal-day-group">
                         <div class="cal-day-header px-3 py-2">
                             @day.ToString("dddd, MMM d")
+                            @if (Model.HolidayLabels[i] is { } holiday)
+                            {
+                                <span class="badge bg-warning text-dark ms-1">@holiday</span>
+                            }
                         </div>
                         @foreach (var row in dayRows)
                         {
@@ -165,11 +169,16 @@
                 <thead class="table-dark">
                     <tr>
                         <th class="net-col">Net</th>
-                        @foreach (var day in days)
+                        @for (int d = 0; d < 7; d++)
                         {
+                            var day = days[d];
                             <th class="text-center day-col">
                                 @day.ToString("ddd")
                                 <div class="fw-normal small opacity-75">@day.ToString("MMM d")</div>
+                                @if (Model.HolidayLabels[d] is { } holiday)
+                                {
+                                    <div><span class="badge bg-warning text-dark mt-1">@holiday</span></div>
+                                }
                             </th>
                         }
                     </tr>

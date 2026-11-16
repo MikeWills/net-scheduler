@@ -1,3 +1,5 @@
+using NcsScheduler.Models.Domain;
+
 namespace NcsScheduler.Helpers;
 
 /// <summary>
@@ -25,4 +27,21 @@ public static class CalendarLayout
     /// <param name="hasAnyCell">True if any day column produced a cell.</param>
     public static bool ShouldRenderRow(bool hasActiveRules, bool hasAnyCell)
         => hasActiveRules || hasAnyCell;
+
+    /// <summary>
+    /// Holiday name for each of the week's seven Eastern day columns (Sun..Sat), or null.
+    /// Holiday.Date is the holiday's own calendar date, compared directly against the
+    /// Eastern column dates. Two holidays on one day are joined with " / ".
+    /// </summary>
+    public static string?[] HolidayLabelsForWeek(DateOnly weekStart, IEnumerable<Holiday> holidays)
+    {
+        var labels = new string?[7];
+        foreach (var h in holidays.OrderBy(h => h.Date))
+        {
+            int i = h.Date.DayNumber - weekStart.DayNumber;
+            if (i < 0 || i > 6) continue;
+            labels[i] = labels[i] is null ? h.Name : $"{labels[i]} / {h.Name}";
+        }
+        return labels;
+    }
 }

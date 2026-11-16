@@ -539,7 +539,16 @@ public class AssignmentsController : Controller
             if (!list.Contains(label)) list.Add(label);
         }
 
-        var vm = new BcCalendarViewModel { WeekStart = weekStart, WeekEnd = weekEnd };
+        var weekHolidays = await _db.Holidays
+            .Where(h => h.Date >= weekStart && h.Date <= weekEnd)
+            .ToListAsync();
+
+        var vm = new BcCalendarViewModel
+        {
+            WeekStart = weekStart,
+            WeekEnd = weekEnd,
+            HolidayLabels = CalendarLayout.HolidayLabelsForWeek(weekStart, weekHolidays),
+        };
 
         foreach (var net in nets)
         {
