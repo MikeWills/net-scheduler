@@ -40,7 +40,7 @@ jobs:
         run: dotnet restore
 
       - name: Publish
-        run: dotnet publish NcsScheduler/NcsScheduler.csproj -c Release -o publish -p:InformationalVersion=${{ github.event.release.tag_name }}
+        run: dotnet publish NcsScheduler/NcsScheduler.csproj -c Release -o publish -p:InformationalVersion=${{ github.ref_name }}
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
@@ -126,3 +126,14 @@ jobs:
             sudo journalctl -u $SERVICE_NAME -n 50 --no-pager
             exit 1
           "
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it as is."
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          fi

@@ -60,7 +60,7 @@ Full setup details (Tailscale, secrets, systemd, Apache) live in `docs/deploymen
 
 ### Publishing to production (GitHub flow)
 
-`.github/workflows/deploy.yml` deploys automatically whenever a **GitHub Release is published**. Merging to `master` alone does not deploy (it only runs `dotnet.yml`'s build), and pushing a bare tag does not deploy either — a Release has to actually be published from that tag.
+`.github/workflows/deploy.yml` deploys automatically when a **CalVer tag (`YYYY.MM.PATCH`, e.g. `2026.11.1`) is pushed**. Merging to `master` alone does not deploy (it only runs `dotnet.yml`'s build). After a healthy deploy the job creates the GitHub Release itself — don't create it by hand.
 
 ```bash
 # 1. Work on a branch, never commit straight to master
@@ -72,13 +72,11 @@ gh pr create --title "..." --body "..."
 # 2. Once CI (build + claude-code-review) is green, merge
 gh pr merge <number> --merge --delete-branch
 
-# 3. Tag the commit to ship (lightweight tags; no strict version scheme in
-#    use yet — check `git tag -l` for the last one before picking the next)
-git tag v2.2
-git push origin v2.2
-
-# 4. Publish a GitHub Release from that tag -- THIS is the actual deploy trigger
-gh release create v2.2 --title "v2.2" --notes "..."
+# 3. Tag the merge commit and push the tag -- THIS is the deploy trigger.
+#    Patch counts from 0 and resets each month; check `git tag -l` first.
+git checkout master && git pull
+git tag 2026.11.1
+git push origin 2026.11.1
 ```
 
 Watch the deploy with `gh run list --workflow=deploy.yml` / `gh run view <id>`. The job builds, joins the server's Tailscale network, backs up the SQLite DB, stops the service, rsyncs the publish output, restarts the service, and health-checks `http://localhost:5000/` — the production port set by `ASPNETCORE_URLS` in the systemd unit. Note this is **not** 5106; that's only the dev-time port from `launchSettings.json`, which doesn't apply when systemd runs the published DLL directly.
