@@ -145,7 +145,15 @@ The workflow also references a `production` GitHub Environment — create one (S
 
 ### Triggering a deploy
 
-Push/merge to `master` as usual (this only builds via `dotnet.yml`), then cut a [GitHub Release](https://github.com/MikeWills/net-scheduler/releases/new) from that commit to trigger the actual deploy.
+Merging to `master` only builds (via `dotnet.yml`). To ship, tag the merge commit with the next CalVer tag (`YYYY.MM.PATCH`, patch resets each month) and push the tag:
+
+```bash
+git checkout master && git pull
+git tag 2026.11.1
+git push origin 2026.11.1
+```
+
+The tag push runs `deploy.yml`. After the health check passes, the job creates the GitHub Release for that tag with auto-generated notes. Tags that don't match `YYYY.MM.PATCH` (such as the old `v2.x` style) don't deploy.
 
 ---
 
