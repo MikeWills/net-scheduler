@@ -349,6 +349,13 @@
 
         .day-col {
             min-width: 120px;
+            width: 13%; /* equal day columns; the net column takes the rest */
+        }
+
+        /* Top-align the header row so day names and dates stay on one line
+           across columns even when a holiday badge makes one header taller. */
+        .bc-calendar > thead > tr > th {
+            vertical-align: top;
         }
 
         .net-name-cell {

@@ -120,11 +120,19 @@
 
                 @* Desktop: table (hidden below md) *@
                 <div class="d-none d-md-block table-responsive">
-                    <table class="table table-sm table-hover mb-0 border rounded-bottom">
+                    <table class="table table-sm table-hover mb-0 border rounded-bottom schedule-table">
+                        @* Fixed column widths so every day's table lines up with the others. *@
+                        <colgroup>
+                            <col style="width:28%">
+                            <col style="width:28%">
+                            <col style="width:9%">
+                            <col style="width:10%">
+                            <col style="width:25%">
+                        </colgroup>
                         <thead class="table-light border-bottom">
                             <tr>
-                                <th style="min-width:160px">Net</th>
-                                <th style="min-width:140px">NCS</th>
+                                <th>Net</th>
+                                <th>NCS</th>
                                 <th class="text-nowrap">UTC</th>
                                 <th class="text-nowrap">Local</th>
                                 <th>Frequency</th>
@@ -205,6 +213,23 @@
         color: #fff;
         font-size: 1rem;
     }
+    /* Same column widths in every day's table (set by <colgroup>), not sized per day by content. */
+    .schedule-table { table-layout: fixed; }
+    .schedule-table td, .schedule-table th { overflow-wrap: anywhere; }
+    /* The site-wide 3px left border on open/volunteer rows widens that table's first
+       column and shifts it ~2px against the other days. Draw the stripe as an inset
+       shadow on the first cell instead (keeping Bootstrap's own cell-background shadow). */
+    .schedule-table tr.slot-open,
+    .schedule-table tr.slot-volunteer { border-left: 0; }
+    .schedule-table tr.slot-open > td:first-child {
+        box-shadow: inset 3px 0 0 var(--bs-danger),
+                    inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+    }
+    .schedule-table tr.slot-volunteer > td:first-child {
+        box-shadow: inset 3px 0 0 var(--bs-warning),
+                    inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+    }
+
     .slot-open  { background-color: var(--bs-danger-bg-subtle) !important; }
     .slot-volunteer { background-color: var(--bs-warning-bg-subtle) !important; }
     .slot-normal    { background-color: inherit; }
