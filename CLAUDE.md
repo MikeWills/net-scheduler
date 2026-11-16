@@ -69,7 +69,7 @@ git commit -m "..."
 git push -u origin fix/whatever
 gh pr create --title "..." --body "..."
 
-# 2. Once CI (build + claude-code-review) is green, merge
+# 2. Once CI (build) is green, merge
 gh pr merge <number> --merge --delete-branch
 
 # 3. Tag the merge commit and push the tag -- THIS is the deploy trigger.
